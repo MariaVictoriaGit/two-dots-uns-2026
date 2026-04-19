@@ -1,6 +1,6 @@
 import { PrologTerm } from '../services/PengineClient';
 
-export const colors = ["r", "c", "g", "p", "y"];
+export const colors = ["r", "c", "g", "p", "y"]; //aca se puede cambiar los colores
 
 export function colorToCss(color: typeof colors[number]): string {
     switch (color) {
@@ -18,7 +18,7 @@ export type CellContent = (typeof colors[number]) | "-" | "~";
 export type Grid = CellContent[][];
 
 export type Objectives = {
-  [key in CellContent]?: number;
+  [key in CellContent]?: number; 
 }
 
 export type EffectTerm = PrologTerm & {

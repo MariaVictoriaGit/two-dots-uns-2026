@@ -15,7 +15,7 @@ function Game() {
   const [objectives, setObjectives] = useState<Objectives>({});
   const [path, setPath] = useState<number[]>([]);
   const [waiting, setWaiting] = useState(false);
-
+  //este history no tocar tuto quema, es el coso para ver que hicimos en el pasado, no es el historial de movimientos, es el historial de estados del juego, para poder mostrar la animacion de los efectos, cada vez que se hace un movimiento se guarda el estado del juego antes de hacer el movimiento, y se muestra ese estado mientras se muestra la animacion de los efectos, y cuando termina la animacion se muestra el estado actual del juego
   const { grid: historyGrid, objectives: historyObjectives } = useHistory({ grid: grid!, objectives, waiting });
 
   useEffect(() => {
@@ -64,7 +64,7 @@ function Game() {
    * Called when the user finished drawing a path in the grid.
    */
   async function onPathDone() {
-    /*
+    /* cuando ek jugadr terina el camino
     Build Prolog query, which will be like:
     connect([
             [-], [r], [c], [p], [-], [-], [-], [-],	
@@ -79,16 +79,16 @@ function Game() {
             ], 8, [21, 29, 30],
           RGrids
         ).
-    */
+    *///aca contruye una consulta de prolog con el estado actual del juego y el camino elegido por el jugador, y la envia al servidor de Prolog para que la resuelva
     const gridS = JSON.stringify(grid).replaceAll('"', '');
     const pathS = JSON.stringify(path);
     const queryS = "connect(" + gridS + "," + numOfColumns + "," + pathS + ", Effects)";
     setWaiting(true);
     const response = await pengine.query(queryS);
-    setPath([]);
+    setPath([]); //el camino va y viene hasta que viene ka resouesta de prolog
     if (response) {
-      setMoves(moves! - 1);
-      animateEffects(response['Effects']);
+      setMoves(moves! - 1);//baja las movidas
+      animateEffects(response['Effects']);//animar los efectos que devuelve prolog
     } else {
       console.log("Prolog query failed")
       setWaiting(false);
@@ -99,7 +99,7 @@ function Game() {
    * Displays each grid of the sequence as the current grid in 1sec intervals, and considers the other effect information.
    * @param effects The list of effects to be animated.
    */
-  async function animateEffects(effects: EffectTerm[]) {
+  async function animateEffects(effects: EffectTerm[]) { //itera por cada uno de los efectos, aplica el efecto actual y hace un disley de un segundo entre un efecto y otro
     for (let i = 0; i < effects.length; i++) {
       applyEffect(effects[i]);
       if (i < effects.length - 1) {
@@ -109,13 +109,13 @@ function Game() {
     setWaiting(false);
   }
 
-  function applyEffect(effect: EffectTerm) {
-    const [effectGrid, effectInfo] = effect.args;
-    setGrid(effectGrid);
+  function applyEffect(effect: EffectTerm) {//va a venir un arreglo de efectos, cada uno con una grilla y una info de efecto, esta funcion aplica el efecto actual, que es actualizar la grilla y actualizar los objetivos logrados
+    const [effectGrid, effectInfo] = effect.args;//esto va a hacer una lista con los dos argumentos grilla e informacion de efecto
+    setGrid(effectGrid);//seteamos la grilla
     effectInfo.forEach((effectInfoItem: EffectInfoTerm) => {
       const { functor, args } = effectInfoItem;
       switch (functor) {
-        case 'achieved':
+        case 'achieved': //resta los puntajes logrados a los objetivos actuales achieved([[g, 3], [~, 3]])
           setObjectives(prev => {
             const newObjectives = { ...prev };
             args[0].forEach(([block, value]: [CellContent, number]) => {
@@ -155,10 +155,10 @@ function Game() {
       <Board
         grid={historyGrid ?? grid}
         numOfColumns={numOfColumns!}
-        path={path}
-        onPathChange={onPathChange}
-        onDone={onPathDone}
-        readonly={waiting || historyGrid !== undefined}
+        path={path} //le paso camino
+        onPathChange={onPathChange} //que hacer cuando el jugdor avanza o retrocede en el camino
+        onDone={onPathDone} //el jugador solto el mouse, entonces se termina el camino
+        readonly={waiting || historyGrid !== undefined} 
       />
     </div>
   );

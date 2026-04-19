@@ -21,7 +21,7 @@ export function connectable(posA: number, posB: number, grid: Grid): boolean {
 export function isConnectableDot(value: CellContent): boolean {
     return colors.includes(value);
 }
-
+//no tocar feo tuto quema
 export function useHistory({ grid, objectives, waiting }: { grid: Grid, objectives: Objectives, waiting: boolean }): { grid?: Grid, objectives?: Objectives } {
     const [history, setHistory] = useState<{ grid: Grid, objectives: Objectives }[]>([]);
     const [current, setCurrent] = useState(-1);
