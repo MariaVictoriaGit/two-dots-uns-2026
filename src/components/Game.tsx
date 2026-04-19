@@ -19,17 +19,18 @@ function Game() {
   const { grid: historyGrid, objectives: historyObjectives } = useHistory({ grid: grid!, objectives, waiting });
 
   useEffect(() => {
-    // This is executed just once, after the first render.
+    // Esto se ejecuta solo una vez, después del primer renderizado.
     connectToPenginesServer();
   }, []);
 
   async function connectToPenginesServer() {
-    setPengine(await PengineClient.create()); // Await until the server is initialized
+    setPengine(await PengineClient.create()); // Espera hasta que se inicialice el servidor
+
   }
 
   useEffect(() => {
     if (pengine) {
-      // This is executed after pengine was set.
+      // Esto se ejecuta después de que pengine se haya establecido
       initGame();
     }
   }, [pengine]);
@@ -49,7 +50,7 @@ function Game() {
   }
 
   /**
-   * Called while the user is drawing a path in the grid, each time the path changes.
+   * Llamado mientras el usuario está dibujando un camino en la cuadrícula, cada vez que el camino cambia.
    */
   function onPathChange(newPath: number[]) {
     // No effect if waiting.
@@ -61,11 +62,11 @@ function Game() {
   }
 
   /**
-   * Called when the user finished drawing a path in the grid.
+   * Llamado cuando el usuario termina de dibujar un camino en la cuadrícula.
    */
   async function onPathDone() {
-    /* cuando ek jugadr terina el camino
-    Build Prolog query, which will be like:
+    /* cuando el jugador termina el camino
+    * 1. Construye la consulta de Prolog con el estado del juego que quedaría así:
     connect([
             [-], [r], [c], [p], [-], [-], [-], [-],	
             [c], [y], [g], [p], [r], [-], [-], [-],	
@@ -85,7 +86,7 @@ function Game() {
     const queryS = "connect(" + gridS + "," + numOfColumns + "," + pathS + ", Effects)";
     setWaiting(true);
     const response = await pengine.query(queryS);
-    setPath([]); //el camino va y viene hasta que viene ka resouesta de prolog
+    setPath([]); //el camino va y viene hasta que viene la resouesta de prolog
     if (response) {
       setMoves(moves! - 1);//baja las movidas
       animateEffects(response['Effects']);//animar los efectos que devuelve prolog
@@ -96,7 +97,7 @@ function Game() {
   }
 
   /**
-   * Displays each grid of the sequence as the current grid in 1sec intervals, and considers the other effect information.
+   * Muestra cada grilla de la secuencia como la grilla actual en intervalos de 1 segundo, y considera la otra información de efectos.
    * @param effects The list of effects to be animated.
    */
   async function animateEffects(effects: EffectTerm[]) { //itera por cada uno de los efectos, aplica el efecto actual y hace un disley de un segundo entre un efecto y otro
@@ -133,7 +134,7 @@ function Game() {
     });
   }
 
-  // Don't display anything until the Prolog server is ready (alternatively render a loading UI).
+  // No muestres nada hasta que el servidor de Prolog esté listo (alternativamente, renderiza una interfaz de carga).
   if (!pengine) {
     return null;
   }

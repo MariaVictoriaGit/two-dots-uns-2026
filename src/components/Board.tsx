@@ -20,33 +20,33 @@ function Board({ grid, numOfColumns, path, onPathChange, onDone, readonly }: Boa
         if (readonly) {
             return;
         }
-        if (path.length === 0) {    // Clicked the first square, so init the path with that square.
+        if (path.length === 0) {    // Presionó el primer cuadrado, así que se inicia el camino con ese cuadrado.
             onPathChange([pos]);
         }
     }
 
     function onDotHover(pos: number) {
-        if (path.length === 0) {    // Ignore if not collecting a path.
+        if (path.length === 0) { // Ignorar si no se está formando un camino.    
             return;
         }
-        if (!grid[pos].some(content => isConnectableDot(content))) {    // Ignore hovering squares with no dot.
+        if (!grid[pos].some(content => isConnectableDot(content))) { // Ignorar si el cuadrado no tiene un punto conectable.
             return;
         }
-        if (!isAdyacent(pos, path[path.length - 1], numOfColumns)) { // Ignore hovering non-adyacent squares.
+        if (!isAdyacent(pos, path[path.length - 1], numOfColumns)) { // Ignorar si no hay adyacencia entre el cuadrado y el último del camino.
             return;
         }
-        if (path.length > 1 && pos === path[path.length - 2]) {  // Remove the last square in the path if returned to the previous one                
+        if (path.length > 1 && pos === path[path.length - 2]) { // Quitar el último cuadrado del camino si se regresa al anterior. Esto permite corregir errores al formar el camino.         
             onPathChange(path.slice(0, path.length - 1));
-        } else if (path.length > 2 && path.slice(0, path.length - 2).includes(path[path.length - 1])) { // Ignore hovering a square if you already got a closed path
+        } else if (path.length > 2 && path.slice(0, path.length - 2).includes(path[path.length - 1])) { // Ignorar si el cuadrado ya está en un camino cerrado.
             return;
-        } else if (connectable(pos, path[path.length - 1], grid)) {   // Add a square to the path if adyacent, not already in the path, and equal or next power than the last in the path
-            onPathChange(path.concat([pos]));   // Add a square to the path if adyacent, not already in the path, and equal or next power than the last in the path                
+        } else if (connectable(pos, path[path.length - 1], grid)) { // Agregar el cuadrado al camino si es adyacente, no está ya en el camino, y es igual o siguiente potencia que el último en el camino.  
+            onPathChange(path.concat([pos])); // Agregar un cuadrado al camino si es adyacente, no está ya en el camino, y es igual o siguiente potencia que el último en el camino.  
         }
     }
 
     useEffect(() => {
         function onUp() {
-            if (path.length === 0) return;  // Ignore if not collecting a path.
+            if (path.length === 0) return;  // Ignorar si no se está formando un camino.
             if (path.length === 1) {
                 onPathChange([]);
             } else {

@@ -6,12 +6,34 @@
 :-use_module(library(lists)).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%
+% 
 % connect(+Grid, +NumOfColumns, +Path, -Effects)
 %
 % donde Effects es una lista de effect(ResultingGrid, AuxiliaryInfo) 
 % donde AuxiliaryInfo es una lista de información adicional que se quiera devolver 
 % para la UI (por ejemplo, los objetivos cumplidos, o qué celdas se vieron afectadas, etc).
+
+
+/* Logica
+Grilla de puntos de colores conectables. 
+El usuario debe poder seleccionar y conectar puntos adyacentes del mismo color
+para formar una jugada válida. Al completar la jugada, esos puntos desaparecen.
+
+adyacente(X ,Y, numColumna):-
+	Y is X + 1.
+adyacente(X,Y, numColumna):-
+	Y is X - 1.
+adyacente(X,Y, numColumna):-
+	Y is X + numColumna.
+adyacente(X,Y, numColumna):-
+	Y is X - numColumna.
+
+camino_valido([_], _).
+camino_valido([A,B|Resto], NumCols) :-
+    adyacente(A,B,NumCols),
+    camino_valido([B|Resto], NumCols).
+*/
+
 
 connect(
 	[
