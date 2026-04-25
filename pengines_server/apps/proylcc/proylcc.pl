@@ -72,8 +72,8 @@ adyacente(X, Y, NumOfColumns, Grid):-
 
 celda_con_color(Grid, Indice):-
     esta_elemento(Indice, Grid, Celda),
-    %Celda \= [],
-    %Celda \= [-],
+    Celda \= [],
+    Celda \= [-],
     Celda = [Color | _],
     es_color(Color).
 
@@ -123,4 +123,120 @@ procesar_celda(_, _, Celda, Celda).
 remover_color(Celda, NewCelda):-
     exclude(es_color, Celda, NewCelda).%saca si es algun color pero agua sin color es vacio q tmb debe llenarse y mantener el agua
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%GRAVEDAD
+/*iterar columnas*/
+gravedad(Grid, NumCols, NewGrid) :-
+    gravedad_cols(0, NumCols, Grid, Grid, NewGrid).
+
+gravedad_cols(ColIndice, NumCols, _, Acc, Acc) :-
+    ColIndice >= NumCols, !. 
+    /*provoca el descarte de todas las (ramas) alternativas que quedaron pendientes de ser exploradas desde 
+el instante en que se utilizó para resolver la regla conteniendo dicho ‘!’(diapos 7 Prolog)*/
+gravedad_cols(ColIndice, NumCols, Grid, Acc, NewGrid) :-
+    columna(Grid, NumCols, ColIndice, Col),
+    gravedad_columna_con_obstaculos(Col, NewCol),
+    reemplazar_columna(Acc, Grid, NumCols, ColIndice, NewCol, 0, Acc1),
+    NextCol is ColIndice + 1,
+    gravedad_cols(NextCol, NumCols, Grid, Acc1, NewGrid).
+
+/*extraer y reinsertar*/
+columna(Grid, NumCols, ColIndice, Col) :-
+    columna_rec(Grid, NumCols, ColIndice, 0, Col).
+
+columna_rec([], _, _, _, []) :- !.
+columna_rec([X|Xs], NumCols, ColIndice, I, [X|Ys]) :-
+    I mod NumCols =:= ColIndice, !,
+    I1 is I + 1,
+    columna_rec(Xs, NumCols, ColIndice, I1, Ys).
+columna_rec([_|Xs], NumCols, ColIndice, I, Ys) :-
+    I1 is I + 1,
+    columna_rec(Xs, NumCols, ColIndice, I1, Ys).
+
+reemplazar_columna([], _, _, _, _, _, []).
+%//si el indice de la celda es igual al indice de la columna a reemplazar, entonces reemplazamos por el nuevo valor
+reemplazar_columna([X|XCola], Grid, NumOfColumns, ColIndice, NewCol, I, [Y|YCola]) :-
+    /*aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaah*/
+    I mod NumOfColumns =:= ColIndice, !,        %si nop falla sigue
+    Indice is I // NumOfColumns,
+    esta_elemento(Indice, NewCol, Y),
+    I1 is I + 1,
+    reemplazar_columna(XCola, Grid, NumOfColumns, ColIndice, NewCol, I1, YCola).
+reemplazar_columna([X|XCola], Grid, NumOfColumns, ColIndice, NewCol, I, [X|YCola]) :-
+    I mod NumOfColumns =\= ColIndice,
+    I1 is I + 1,
+    reemplazar_columna(XCola, Grid, NumOfColumns, ColIndice, NewCol, I1, YCola).
+
+
+
+tiene_color([Color|_]) :- es_color(Color).
+es_obstaculo([-]).
+
+
+
+
+
+/*logica de la gravedad*/
+    /*segmentamos por los obstaculos*/
+separar_por_obstaculos([], []).
+separar_por_obstaculos([[-]|R], [[[-]]|Segs]) :-
+    separar_por_obstaculos(R, Segs).
+separar_por_obstaculos([X|R], [[X|Seg]|Segs]) :-
+    X \= [-],
+    tomar_segmento(R, Seg, Resto),
+    separar_por_obstaculos(Resto, Segs).
+
+tomar_segmento([], [], []).
+tomar_segmento([[-]|R], [], [[-]|R]) :- !.
+tomar_segmento([X|R], [X|Seg], Resto) :-
+    tomar_segmento(R, Seg, Resto).
+    
+/*logica de la gravedad*/
+    /*gravedad en segmento*/
+gravedad_segmento([[-]], [[-]]) :- !.
+gravedad_segmento(Seg, NewSeg) :-
+    include(cae, Seg, NoVacios),
+    length(Seg, L),
+    length(NoVacios, LNV),
+    Vacios is L - LNV,
+    crear_vacios(Vacios, VaciosLista),
+    append(VaciosLista, NoVacios, NewSeg).
+/*TODO*/
+cae(Celda) :-
+    tiene_color(Celda),
+    \+ es_agua(Celda).
+
+es_agua([_,~]).
+es_agua([~]).
+
+no_vacio(Celda) :-
+    Celda \= [],    
+    Celda \= [-].
+
+crear_vacios(0, []).
+crear_vacios(N, [[]|R]) :-
+    N > 0,
+    N1 is N - 1,
+    crear_vacios(N1, R).
+/*logica de la gravedad*/
+    /*aplicar a toda la columna*/
+procesar_segmento([[-]], [[-]]) :- !.
+procesar_segmento(Seg, NewSeg) :-
+    gravedad_segmento(Seg, NewSeg).
+gravedad_columna_con_obstaculos(Col, NewCol) :-
+        writeln('COL ORIGINAL'), writeln(Col),
+    separar_por_obstaculos(Col, Segs),
+        writeln('SEGS'), writeln(Segs),
+    maplist(procesar_segmento, Segs, NewSegs),
+        writeln('NEW SEGS'), writeln(NewSegs),
+    append(NewSegs, NewCol),
+    %append/2 en SWI-Prolog sí concatena lista de listas.
+        writeln('NEW COL'), writeln(NewCol).
