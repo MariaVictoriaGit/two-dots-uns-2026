@@ -175,9 +175,21 @@ reemplazar_columna([X|XCola], Grid, NumOfColumns, ColIndice, NewCol, I, [X|YCola
     I1 is I + 1,
     reemplazar_columna(XCola, Grid, NumOfColumns, ColIndice, NewCol, I1, YCola).
 
+/*particionar([], _, []).
+particionar(ListaPlana, NumCols, [Fila | RestoFilas]) :-
+    length(Fila, NumCols),                  % Crea una lista del tamaño de las columnas (8)
+    append(Fila, Resto, ListaPlana),        % Corta la lista plana original
+    particionar(Resto, NumCols, RestoFilas). % Repite con lo que sobra
+*/
 
 
-tiene_color([Color|_]) :- es_color(Color).
+tiene_color([Color|Resto]) :- 
+    es_color(Color);
+    es_agua(Resto).
+/*puto**/
+%es_agua([_,~]).
+es_agua([~]).
+
 es_obstaculo([-]).
 
 
@@ -214,8 +226,6 @@ cae(Celda) :-
     tiene_color(Celda),
     \+ es_agua(Celda).
 
-es_agua([_,~]).
-es_agua([~]).
 
 no_vacio(Celda) :-
     Celda \= [],    
