@@ -10,13 +10,14 @@ ESTRUCTURA//////////////////////////////////////////////////////////////////////
     Sino
 )
 
-Celda = [Color | _]
+Celda = [Color , _]
 */
 :- module(proylcc,
     [  
         connect/4
     ]).
 :-use_module(library(lists)).
+:- use_module(library(random)).
 % connect(+Grid, +NumOfColumns, +Path, -Effects)
 % donde Effects es una lista de effect(ResultingGrid, AuxiliaryInfo)
 % donde AuxiliaryInfo es una lista de información adicional que se quiera devolver
@@ -27,7 +28,7 @@ connect(Grid, NumOfColumns, Path, Effects) :- %motor de todo el manejo de la jug
         writeln(Path),
     camino_valido(Path, NumOfColumns, Grid),
         writeln('camino ok'),
-    mismo_color(Grid, Path, _Color),
+    mismo_color(Grid, Path, Color, Cantidad),
         writeln('color ok'),
     eliminar_path(Grid, Path, Grid1),
         writeln('path eliminado'),
@@ -37,7 +38,7 @@ connect(Grid, NumOfColumns, Path, Effects) :- %motor de todo el manejo de la jug
         writeln('despues gravedad'),
         writeln(Grid2),
     Effects=[
-        effect(Grid1, [eliminados(Path)]),
+        effect(Grid1, [achieved([[Color, Cantidad]])]),
         effect(Grid2, [cae])%        
     ]. %unificamos
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -85,9 +86,10 @@ color_en(Grid, Indice, Color):-
 es_color(X):-
     member(X, [r, g, b, y, c, p]).%cuida no borrar el efecto, si el color
 
-mismo_color(Grid, [X|Z], Color):-
+mismo_color(Grid, [X|Z], Color, Cantidad):-
     color_en(Grid, X, Color),
-    forall(member(Y, Z), color_en(Grid, Y, Color)).
+    forall(member(Y, Z), color_en(Grid, Y, Color)),
+    length([X|Z], Cantidad).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %ACCESOS
 /*ver si buscamos en un lugar valido e instanciamos el elemento
@@ -99,6 +101,7 @@ esta_elemento(E, Lista, X) :-
 /*nth0/3 es un predicado estándar de Prolog para acceder a elementos de una lista por índice empezando en 0.*/
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %ELIMINACION
+
 eliminar_path(Grid, Path, NewGrid):-
     eliminar_path_rec(Grid, Path, 0, NewGrid).
 
@@ -107,6 +110,8 @@ eliminar_path_rec([Celda|Resto], Path, Indice, [NewCelda|NewResto]):-
     procesar_celda(Indice, Path, Celda, NewCelda),
     NextIndice is Indice + 1,
     eliminar_path_rec(Resto, Path, NextIndice, NewResto).
+
+
 /*procesar_celda(Indice, Path, Celda, NewCelda):-
     (
         member(Indice, Path),
@@ -213,18 +218,48 @@ tomar_segmento([X|R], [X|Seg], Resto) :-
     
 /*logica de la gravedad*/
     /*gravedad en segmento*/
+% 1. Definimos qué es una ficha con color (venga con agua o no)
+tiene_color_real(Celda) :- 
+    Celda = [Color|_], 
+    es_color(Color).
 gravedad_segmento([[-]], [[-]]) :- !.
+% 2. Gravedad del segmento
 gravedad_segmento(Seg, NewSeg) :-
-    include(cae, Seg, NoVacios),
-    length(Seg, L),
-    length(NoVacios, LNV),
-    Vacios is L - LNV,
-    crear_vacios(Vacios, VaciosLista),
-    append(VaciosLista, NoVacios, NewSeg).
-/*TODO*/
-cae(Celda) :-
-    tiene_color(Celda),
-    \+ es_agua(Celda).
+    % EXTRAER: Solo nos importan los colores que sobrevivieron, 
+    % sin importar si estaban en agua o no.
+    findall([Color], (member(C, Seg), tiene_color_real(C), C = [Color|_]), Sobrevivientes),
+    
+    length(Seg, LargoTotal),
+    length(Sobrevivientes, LargoS),
+    
+    % GENERAR: Colores nuevos para los huecos
+    Nuevos is LargoTotal - LargoS,
+    crear_vacios_random(Nuevos, Generados),
+    
+    % UNIR: Tenemos una lista pura de fichas [ [r], [g], [b]... ]
+    append(Generados, Sobrevivientes, FichasParaPoner),
+    
+    % ACOMODAR: Usamos el molde original para reinsertar el agua
+    acomodar(Seg, FichasParaPoner, NewSeg), !.
+
+% 3. Acomodar: El "mapeador" de fichas al molde
+acomodar([], [], []).
+% Si el molde original en esta posición tenía agua
+acomodar([Celda|RestoMolde], [[Color]|RestoFichas], [[Color, ~]|RestoResultado]) :-
+    (Celda = [~] ; member(~, Celda)), !,
+    acomodar(RestoMolde, RestoFichas, RestoResultado).
+% Si el molde original NO tenía agua
+acomodar([_|RestoMolde], [Ficha|RestoFichas], [Ficha|RestoResultado]) :-
+    !,
+    acomodar(RestoMolde, RestoFichas, RestoResultado).
+
+% --- AUXILIARES ---
+crear_vacios_random(0, []) :- !.
+crear_vacios_random(N, [[Color]|R]) :-
+    N > 0,
+    random_member(Color, [r,g,y,c,p]),
+    N1 is N - 1,
+    crear_vacios_random(N1, R).
 
 
 no_vacio(Celda) :-
