@@ -25,20 +25,22 @@ Celda = [Color , _]
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %ENTRADA PRINCIPAL
 connect(Grid, NumOfColumns, Path, Effects) :- %motor de todo el manejo de la jugada
-        writeln(Path),
+    %verificamos que el camino sea valido
     camino_valido(Path, NumOfColumns, Grid),
-        writeln('camino ok'),
     mismo_color(Grid, Path, Color, Cantidad),
-        writeln('color ok'),
-    eliminar_path(Grid, Path, Grid1),
-        writeln('path eliminado'),
-        writeln('antes gravedad'),
+    %To do: Bomba
+    %bomba(Grid, Path, NumOfColumns, Color, Cantidad),
+    % --- EXPANSIÓN Agua ---
+    expandir_agua_en_jugada(Grid, Path, NumOfColumns, Indices_con_agua),
+    aplicar_agua_a_grilla(Grid, Indices_con_agua, GridConAgua),
+    length(Indices_con_agua, CantidadAgua),
+    % --------------------------------------
+    eliminar_path(GridConAgua, Path, Grid1),
+    
     gravedad(Grid1, NumOfColumns, Grid2), %los comentados no borrarlos son para cuando ande la gravedad
-        
-        writeln('despues gravedad'),
-        writeln(Grid2),
+    
     Effects=[
-        effect(Grid1, [achieved([[Color, Cantidad]])]),
+        effect(Grid1, [achieved([[Color, Cantidad], [~, CantidadAgua]])]), %logro de haber eliminado el camino
         effect(Grid2, [cae])%        
     ]. %unificamos
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -124,10 +126,12 @@ eliminar_path_rec([Celda|Resto], Path, Indice, [NewCelda|NewResto]):-
 procesar_celda(Indice, Path, Celda, NewCelda) :-
     member(Indice, Path), !,
     remover_color(Celda, NewCelda).
-procesar_celda(_, _, Celda, Celda).
-remover_color(Celda, NewCelda):-
-    exclude(es_color, Celda, NewCelda).%saca si es algun color pero agua sin color es vacio q tmb debe llenarse y mantener el agua
 
+procesar_celda(_, _, Celda, Celda).
+remover_color(Celda, [~]) :- 
+    member(~, Celda), !.
+
+remover_color(_, []).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -137,6 +141,58 @@ remover_color(Celda, NewCelda):-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%bomba
+%bomba(Grid, Path, NumOfColumns, Color, Cantidad).
+% EXPANSIÓN DE AGUA
+
+
+expandir_agua_en_jugada(Grid, Path, NumOfColumns, Resultado) :-
+    % CONDICIÓN: Buscamos si existe un punto P en el camino que...
+    member(P, Path), 
+    (   
+        % ...ya tenga agua él mismo
+        celda_tiene_agua(Grid, P) 
+    ;   
+        % ...o tenga un vecino V (usando tu adyacente) que tenga agua
+        adyacente(P, V, NumOfColumns, Grid),
+        celda_tiene_agua(Grid, V)
+    ), 
+    !,
+    Resultado = Path, % Si encontramos al menos uno, el agua se expande a TODO el Path
+    writeln('Contacto con agua detectado. Expandiendo al camino seleccionado.').
+
+% Si no se cumple lo de arriba, devolvemos lista vacía (no se moja nada nuevo)
+expandir_agua_en_jugada(_, _, _, []).
+
+celda_tiene_agua(Grid, Idx) :- 
+    nth0(Idx, Grid, Celda), %busca la selda Idx en la grilla
+    member(~, Celda). %se fija si la celda en el índice dado tiene agua
+
+% --aplicamos el agua a la grilla--
+aplicar_agua_a_grilla(Grid, IndicesADarAgua, NewGrid) :-
+    aplicar_agua_rec(Grid, IndicesADarAgua, 0, NewGrid).
+
+% Caso base: cuando terminamos de recorrer la grilla
+aplicar_agua_rec([], _, _, []).
+% Caso recursivo: procesamos cada celda una por una
+aplicar_agua_rec([CeldaOriginal|RestoGrid], Indices, I, [NuevaCelda|RestoNew]) :-
+    (   member(I, Indices) -> %los indices son los que afecta el agua
+        % SI el índice actual I está en la lista para mojar:
+        (   member(~, CeldaOriginal) -> 
+            % Si ya tenía agua (ej: [r, ~]), la dejamos igual
+            NuevaCelda = CeldaOriginal 
+        ;   
+            % Si no tenía (ej: [r]), le agregamos el agua al final -> [r, ~]
+            append(CeldaOriginal, [~], NuevaCelda)
+        )
+    ;   
+        % SINO: la celda queda exactamente como estaba
+        NuevaCelda = CeldaOriginal
+    ),
+    % Seguimos con el siguiente índice
+    NextI is I + 1,
+    aplicar_agua_rec(RestoGrid, Indices, NextI, RestoNew).
+
 %GRAVEDAD
 /*iterar columnas*/
 gravedad(Grid, NumCols, NewGrid) :-
@@ -168,7 +224,7 @@ columna_rec([_|Xs], NumCols, ColIndice, I, Ys) :-
 
 reemplazar_columna([], _, _, _, _, _, []).
 %//si el indice de la celda es igual al indice de la columna a reemplazar, entonces reemplazamos por el nuevo valor
-reemplazar_columna([X|XCola], Grid, NumOfColumns, ColIndice, NewCol, I, [Y|YCola]) :-
+reemplazar_columna([_|XCola], Grid, NumOfColumns, ColIndice, NewCol, I, [Y|YCola]) :-
     /*aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaah*/
     I mod NumOfColumns =:= ColIndice, !,        %si nop falla sigue
     Indice is I // NumOfColumns,
@@ -196,8 +252,6 @@ tiene_color([Color|Resto]) :-
 es_agua([~]).
 
 es_obstaculo([-]).
-
-
 
 
 
@@ -250,7 +304,7 @@ acomodar([Celda|RestoMolde], [[Color]|RestoFichas], [[Color, ~]|RestoResultado])
     acomodar(RestoMolde, RestoFichas, RestoResultado).
 % Si el molde original NO tenía agua
 acomodar([_|RestoMolde], [Ficha|RestoFichas], [Ficha|RestoResultado]) :-
-    !,
+    !,%si ya llegue hasta aca no necesito seguir probando otras opciones, si no se cumple esta es porque el molde no tenia agua y entonces pongo la ficha sin agua
     acomodar(RestoMolde, RestoFichas, RestoResultado).
 
 % --- AUXILIARES ---
