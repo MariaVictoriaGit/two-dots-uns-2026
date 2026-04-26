@@ -32,8 +32,8 @@ connect(Grid, NumOfColumns, Path, Effects) :- %motor de todo el manejo de la jug
     %bomba(Grid, Path, NumOfColumns, Color, Cantidad),
     % --- EXPANSIÓN Agua ---
     expandir_agua_en_jugada(Grid, Path, NumOfColumns, Indices_con_agua),
-    aplicar_agua_a_grilla(Grid, Indices_con_agua, GridConAgua),
-    length(Indices_con_agua, CantidadAgua),
+    aplicar_agua_a_grilla(Grid, Indices_con_agua, GridConAgua, Nuevos),
+    length(Nuevos, CantidadAgua),
     % --------------------------------------
     eliminar_path(GridConAgua, Path, Grid1),
     
@@ -169,29 +169,33 @@ celda_tiene_agua(Grid, Idx) :-
     member(~, Celda). %se fija si la celda en el índice dado tiene agua
 
 % --aplicamos el agua a la grilla--
-aplicar_agua_a_grilla(Grid, IndicesADarAgua, NewGrid) :-
-    aplicar_agua_rec(Grid, IndicesADarAgua, 0, NewGrid).
+aplicar_agua_a_grilla(Grid, IndicesADarAgua, NewGrid, Nuevos) :-
+    aplicar_agua_rec(Grid, IndicesADarAgua, 0, NewGrid, Nuevos).
 
 % Caso base: cuando terminamos de recorrer la grilla
-aplicar_agua_rec([], _, _, []).
+aplicar_agua_rec([], _, _, [], []).
 % Caso recursivo: procesamos cada celda una por una
-aplicar_agua_rec([CeldaOriginal|RestoGrid], Indices, I, [NuevaCelda|RestoNew]) :-
+aplicar_agua_rec([CeldaOriginal|RestoGrid], Indices, I, [NuevaCelda|RestoNew], Nuevos) :-
     (   member(I, Indices) -> %los indices son los que afecta el agua
         % SI el índice actual I está en la lista para mojar:
         (   member(~, CeldaOriginal) -> 
             % Si ya tenía agua (ej: [r, ~]), la dejamos igual
-            NuevaCelda = CeldaOriginal 
+            NuevaCelda = CeldaOriginal, 
+            Nuevos = RestoNuevos
         ;   
             % Si no tenía (ej: [r]), le agregamos el agua al final -> [r, ~]
-            append(CeldaOriginal, [~], NuevaCelda)
+            append(CeldaOriginal, [~], NuevaCelda),
+            Nuevos = [I|RestoNuevos], %guardamos el indice de los nuevos que se mojaron para el logro,
+            writeln('nuevos'), writeln(Nuevos)
         )
     ;   
         % SINO: la celda queda exactamente como estaba
-        NuevaCelda = CeldaOriginal
+        NuevaCelda = CeldaOriginal,
+        Nuevos = RestoNuevos
     ),
     % Seguimos con el siguiente índice
     NextI is I + 1,
-    aplicar_agua_rec(RestoGrid, Indices, NextI, RestoNew).
+    aplicar_agua_rec(RestoGrid, Indices, NextI, RestoNew, RestoNuevos).
 
 %GRAVEDAD
 /*iterar columnas*/
