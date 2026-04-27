@@ -29,7 +29,7 @@ connect(Grid, NumOfColumns, Path, Effects) :- %motor de todo el manejo de la jug
     camino_valido(Path, NumOfColumns, Grid),
     mismo_color(Grid, Path, Color, Cantidad),
     %To do: Bomba
-    (es_bomba(Path) -> 
+    /*(es_bomba(Path) -> 
         eliminar_colores(Grid, Color, GridPreGravedad),
         expandir_agua_en_jugada(Grid, Path, NumOfColumns, IndicesAgua)
     ;   
@@ -46,9 +46,9 @@ connect(Grid, NumOfColumns, Path, Effects) :- %motor de todo el manejo de la jug
     Effects = [
         effect(GridPreGravedad, [achieved([[Color, Cantidad], [~, CantidadAgua]])]),
         effect(GridFinal, [cae])
-    ].
+    ].*/
     % --- EXPANSIÓN Agua ---
-    /*expandir_agua_en_jugada(Grid, Path, NumOfColumns, Indices_con_agua),
+    expandir_agua_en_jugada(Grid, Path, NumOfColumns, Indices_con_agua),
     aplicar_agua_a_grilla(Grid, Indices_con_agua, GridConAgua, Nuevos),
     length(Nuevos, CantidadAgua),
     % --------------------------------------
@@ -59,7 +59,7 @@ connect(Grid, NumOfColumns, Path, Effects) :- %motor de todo el manejo de la jug
     Effects=[
         effect(Grid1, [achieved([[Color, Cantidad], [~, CantidadAgua]])]), %logro de haber eliminado el camino
         effect(Grid2, [cae])%        
-    ].*/ %unificamos
+    ]. %unificamos
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %VALIDAMOS LA JUGADA
@@ -200,7 +200,7 @@ celda_tiene_agua(Grid, Idx) :-
     nth0(Idx, Grid, Celda), %busca la selda Idx en la grilla
     member(~, Celda). %se fija si la celda en el índice dado tiene agua
 
-% --aplicamos el agua a la grilla--
+% --------aplicamos el agua a la grilla-----------
 aplicar_agua_a_grilla(Grid, IndicesADarAgua, NewGrid, Nuevos) :-
     aplicar_agua_rec(Grid, IndicesADarAgua, 0, NewGrid, Nuevos).
 
@@ -230,48 +230,46 @@ aplicar_agua_rec([CeldaOriginal|RestoGrid], Indices, I, [NuevaCelda|RestoNew], N
     aplicar_agua_rec(RestoGrid, Indices, NextI, RestoNew, RestoNuevos).
 
 %----------GRAVEDAD-----------------
-/*iterar columnas*/
-gravedad(Grid, NumCols, NewGrid) :-
-    gravedad_cols(0, NumCols, Grid, Grid, NewGrid).
 
-gravedad_cols(ColIndice, NumCols, _, Acc, Acc) :-
-    ColIndice >= NumCols, !. 
-    /*provoca el descarte de todas las (ramas) alternativas que quedaron pendientes de ser exploradas desde 
-el instante en que se utilizó para resolver la regla conteniendo dicho ‘!’(diapos 7 Prolog)*/
-gravedad_cols(ColIndice, NumCols, Grid, Acc, NewGrid) :-
-    columna(Grid, NumCols, ColIndice, Col),
-    gravedad_columna_con_obstaculos(Col, NewCol),
-    reemplazar_columna(Acc, Grid, NumCols, ColIndice, NewCol, 0, Acc1),
-    NextCol is ColIndice + 1,
-    gravedad_cols(NextCol, NumCols, Grid, Acc1, NewGrid).
+%------------ pasamos de la grilla plana a filas y columnas para facilitar la manipulacion de la gravedad -----------
+grilla_filas([], _, []).
+grilla_filas(GridFlat, NumCol, [Fila|Resto]) :-
+    length(Fila, NumCol),
+    append(Fila, RestoFlat, GridFlat),
+    grilla_filas(RestoFlat, NumCol, Resto).
 
-/*extraer y reinsertar*/
-columna(Grid, NumCols, ColIndice, Col) :-
-    columna_rec(Grid, NumCols, ColIndice, 0, Col).
+transponer([], []).
+transponer([[]|_], []) :- !.
+transponer(Matriz, [Columna|Resto]) :-
+    primera_columna(Matriz, Columna, RestoFilas),
+    transponer(RestoFilas, Resto).
 
-columna_rec([], _, _, _, []) :- !.
-columna_rec([X|Xs], NumCols, ColIndice, I, [X|Ys]) :-
-    I mod NumCols =:= ColIndice, !,
-    I1 is I + 1,
-    columna_rec(Xs, NumCols, ColIndice, I1, Ys).
-columna_rec([_|Xs], NumCols, ColIndice, I, Ys) :-
-    I1 is I + 1,
-    columna_rec(Xs, NumCols, ColIndice, I1, Ys).
+primera_columna([], [], []).
+primera_columna([[X|Xs]|Filas], [X|Col], [Xs|Resto]) :-
+    primera_columna(Filas, Col, Resto).
 
-reemplazar_columna([], _, _, _, _, _, []).
-%//si el indice de la celda es igual al indice de la columna a reemplazar, entonces reemplazamos por el nuevo valor
-reemplazar_columna([_|XCola], Grid, NumOfColumns, ColIndice, NewCol, I, [Y|YCola]) :-
-    /*aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaah*/
-    I mod NumOfColumns =:= ColIndice, !,        %si nop falla sigue
-    Indice is I // NumOfColumns,
-    esta_elemento(Indice, NewCol, Y),
-    I1 is I + 1,
-    reemplazar_columna(XCola, Grid, NumOfColumns, ColIndice, NewCol, I1, YCola).
-reemplazar_columna([X|XCola], Grid, NumOfColumns, ColIndice, NewCol, I, [X|YCola]) :-
-    I mod NumOfColumns =\= ColIndice,
-    I1 is I + 1,
-    reemplazar_columna(XCola, Grid, NumOfColumns, ColIndice, NewCol, I1, YCola).
+grid_a_columnas(GridFlat, NumCol, Columnas) :-
+    grilla_filas(GridFlat, NumCol, Filas),
+    transponer(Filas, Columnas).
 
+aplicar_gravedad_columnas([], []).
+aplicar_gravedad_columnas([Col|Resto], [NuevaCol|RestoNuevo]) :-
+    gravedad_columna_con_obstaculos(Col, NuevaCol),
+    aplicar_gravedad_columnas(Resto, RestoNuevo).
+
+
+gravedad(GridFlat, NumCols, NewGridFlat) :-
+   
+    grid_a_columnas(GridFlat, NumCols, Columnas),
+    
+    aplicar_gravedad_columnas(Columnas, ColumnasProcesadas),
+    
+    % 3. Volvemos a la estructura original
+    % Transponemos las columnas procesadas para obtener filas
+    transponer(ColumnasProcesadas, FilasProcesadas),
+    
+    % Aplanamos la lista de filas para volver a tener una lista simple
+    append(FilasProcesadas, NewGridFlat), !.
 
 %--------Gravedad Con Obstaculos --------
 gravedad_columna_con_obstaculos(Col, NewCol) :-
@@ -318,95 +316,3 @@ tiene_color_real(Celda) :-
 
 es_agua([~]).
 es_obstaculo([-]).
-
-%%-----Esta es la logica anterior por si la quieren ver, osea anda pero con fallas
-/*logica de la gravedad*/
-    /*segmentamos por los obstaculos*/
-/*
-
-no_vacio(Celda) :-
-    Celda \= [],    
-    Celda \= [-].
-
-crear_vacios(0, []).
-crear_vacios(N, [[]|R]) :-
-    N > 0,
-    N1 is N - 1,
-    crear_vacios(N1, R).
-
-tiene_color([Color|Resto]) :- 
-    es_color(Color);
-    es_agua(Resto).
-
-separar_por_obstaculos([], []).
-separar_por_obstaculos([[-]|R], [[[-]]|Segs]) :-
-    separar_por_obstaculos(R, Segs).
-separar_por_obstaculos([X|R], [[X|Seg]|Segs]) :-
-    X \= [-],
-    tomar_segmento(R, Seg, Resto),
-    separar_por_obstaculos(Resto, Segs).
-
-tomar_segmento([], [], []).
-tomar_segmento([[-]|R], [], [[-]|R]) :- !.
-tomar_segmento([X|R], [X|Seg], Resto) :-
-    tomar_segmento(R, Seg, Resto).
-    */
-/*logica de la gravedad*/
-    /*gravedad en segmento*/
-    %Definimos qué es una ficha con color (venga con agua o no)
-/*
-
-/*particionar([], _, []).
-particionar(ListaPlana, NumCols, [Fila | RestoFilas]) :-
-    length(Fila, NumCols),                  % Crea una lista del tamaño de las columnas (8)
-    append(Fila, Resto, ListaPlana),        % Corta la lista plana original
-    particionar(Resto, NumCols, RestoFilas). % Repite con lo que sobra
-*/
-*/
-/*gravedad_segmento([[-]], [[-]]) :- !.
-% 2. Gravedad del segmento
-gravedad_segmento(Seg, NewSeg) :-
-    % EXTRAER: Solo nos importan los colores que sobrevivieron, 
-    % sin importar si estaban en agua o no.
-    findall([Color], (member(C, Seg), tiene_color_real(C), C = [Color|_]), Sobrevivientes),
-    
-    length(Seg, LargoTotal),
-    length(Sobrevivientes, LargoS),
-    
-    % GENERAR: Colores nuevos para los huecos
-    Nuevos is LargoTotal - LargoS,
-    crear_vacios_random(Nuevos, Generados),
-    
-    % UNIR: Tenemos una lista pura de fichas [ [r], [g], [b]... ]
-    append(Generados, Sobrevivientes, FichasParaPoner),
-    
-    % ACOMODAR: Usamos el molde original para reinsertar el agua
-    acomodar(Seg, FichasParaPoner, NewSeg), !.
-
-% 3. Acomodar: El "mapeador" de fichas al molde
-acomodar([], [], []).
-% Si el molde original en esta posición tenía agua
-acomodar([Celda|RestoMolde], [[Color]|RestoFichas], [[Color, ~]|RestoResultado]) :-
-    (Celda = [~] ; member(~, Celda)), !,
-    acomodar(RestoMolde, RestoFichas, RestoResultado).
-% Si el molde original NO tenía agua
-acomodar([_|RestoMolde], [Ficha|RestoFichas], [Ficha|RestoResultado]) :-
-    !,%si ya llegue hasta aca no necesito seguir probando otras opciones, si no se cumple esta es porque el molde no tenia agua y entonces pongo la ficha sin agua
-    acomodar(RestoMolde, RestoFichas, RestoResultado).
-*/
-
-/*logica de la gravedad*/
-    /*aplicar a toda la columna*/
-/*procesar_segmento([[-]], [[-]]) :- !.
-procesar_segmento(Seg, NewSeg) :-
-    gravedad_segmento(Seg, NewSeg).*/
-/*gravedad_columna_con_obstaculos(Col, NewCol) :-
-        writeln('COL ORIGINAL'), writeln(Col),
-    separar_por_obstaculos(Col, Segs),
-        writeln('SEGS'), writeln(Segs),
-    maplist(procesar_segmento, Segs, NewSegs),
-        writeln('NEW SEGS'), writeln(NewSegs),
-    append(NewSegs, NewCol),
-    %append/2 en SWI-Prolog sí concatena lista de listas.
-        writeln('NEW COL'), writeln(NewCol).*/
-
