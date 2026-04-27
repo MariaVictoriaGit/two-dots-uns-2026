@@ -29,9 +29,26 @@ connect(Grid, NumOfColumns, Path, Effects) :- %motor de todo el manejo de la jug
     camino_valido(Path, NumOfColumns, Grid),
     mismo_color(Grid, Path, Color, Cantidad),
     %To do: Bomba
-    %bomba(Grid, Path, NumOfColumns, Color, Cantidad),
+    (es_bomba(Path) -> 
+        eliminar_colores(Grid, Color, GridPreGravedad),
+        expandir_agua_en_jugada(Grid, Path, NumOfColumns, IndicesAgua)
+    ;   
+        % CASO NORMAL: Solo el camino
+        expandir_agua_en_jugada(Grid, Path, NumOfColumns, IndicesAgua),
+        aplicar_agua_a_grilla(Grid, IndicesAgua, GridConAgua, _),
+        eliminar_path(GridConAgua, Path, GridPreGravedad)
+    ),
+    aplicar_agua_a_grilla(Grid, IndicesAgua, _, NuevosAgua),
+    length(NuevosAgua, CantidadAgua),
+
+    % 4. Gravedad final
+    gravedad(GridPreGravedad, NumOfColumns, GridFinal),
+    Effects = [
+        effect(GridPreGravedad, [achieved([[Color, Cantidad], [~, CantidadAgua]])]),
+        effect(GridFinal, [cae])
+    ].
     % --- EXPANSIÓN Agua ---
-    expandir_agua_en_jugada(Grid, Path, NumOfColumns, Indices_con_agua),
+    /*expandir_agua_en_jugada(Grid, Path, NumOfColumns, Indices_con_agua),
     aplicar_agua_a_grilla(Grid, Indices_con_agua, GridConAgua, Nuevos),
     length(Nuevos, CantidadAgua),
     % --------------------------------------
@@ -42,7 +59,8 @@ connect(Grid, NumOfColumns, Path, Effects) :- %motor de todo el manejo de la jug
     Effects=[
         effect(Grid1, [achieved([[Color, Cantidad], [~, CantidadAgua]])]), %logro de haber eliminado el camino
         effect(Grid2, [cae])%        
-    ]. %unificamos
+    ].*/ %unificamos
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %VALIDAMOS LA JUGADA
 /* Logica
@@ -102,6 +120,7 @@ esta_elemento(E, Lista, X) :-
     nth0(E, Lista, X).
 /*nth0/3 es un predicado estándar de Prolog para acceder a elementos de una lista por índice empezando en 0.*/
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 %ELIMINACION
 
 eliminar_path(Grid, Path, NewGrid):-
@@ -130,22 +149,35 @@ procesar_celda(Indice, Path, Celda, NewCelda) :-
 procesar_celda(_, _, Celda, Celda).
 remover_color(Celda, [~]) :- 
     member(~, Celda), !.
-
 remover_color(_, []).
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%bomba
-%bomba(Grid, Path, NumOfColumns, Color, Cantidad).
-% EXPANSIÓN DE AGUA
+
+%-----bomba-------------------
+es_bomba(Path) :-
+    Path = [Primero|Resto],
+    last(Resto, Ultimo),
+    Primero == Ultimo.
+es_bomba([_|Resto]) :- 
+    Resto = [X|XResto],
+    last(Resto, Ultimo),
+    (X == Ultimo -> 
+        true ; 
+        es_bomba(XResto)).
+
+eliminar_colores([], _, []).
+eliminar_colores([Celda|Resto], Color, [NuevaCelda|RestoNew]) :-
+    (Celda = [Color|_] -> 
+        remover_color(Celda, NuevaCelda)
+    ;   
+        NuevaCelda = Celda
+    ),
+    eliminar_colores(Resto, Color, RestoNew).
 
 
+% ---------------Expancion Agua-------------------
 expandir_agua_en_jugada(Grid, Path, NumOfColumns, Resultado) :-
     % CONDICIÓN: Buscamos si existe un punto P en el camino que...
     member(P, Path), 
@@ -197,7 +229,7 @@ aplicar_agua_rec([CeldaOriginal|RestoGrid], Indices, I, [NuevaCelda|RestoNew], N
     NextI is I + 1,
     aplicar_agua_rec(RestoGrid, Indices, NextI, RestoNew, RestoNuevos).
 
-%GRAVEDAD
+%----------GRAVEDAD-----------------
 /*iterar columnas*/
 gravedad(Grid, NumCols, NewGrid) :-
     gravedad_cols(0, NumCols, Grid, Grid, NewGrid).
@@ -240,27 +272,72 @@ reemplazar_columna([X|XCola], Grid, NumOfColumns, ColIndice, NewCol, I, [X|YCola
     I1 is I + 1,
     reemplazar_columna(XCola, Grid, NumOfColumns, ColIndice, NewCol, I1, YCola).
 
-/*particionar([], _, []).
-particionar(ListaPlana, NumCols, [Fila | RestoFilas]) :-
-    length(Fila, NumCols),                  % Crea una lista del tamaño de las columnas (8)
-    append(Fila, Resto, ListaPlana),        % Corta la lista plana original
-    particionar(Resto, NumCols, RestoFilas). % Repite con lo que sobra
-*/
 
+%--------Gravedad Con Obstaculos --------
+gravedad_columna_con_obstaculos(Col, NewCol) :-
+    % Extraemos colores sobrevivientes
+    findall([Color], (member(C, Col), tiene_color_real(C), C = [Color|_]), Sobrevivientes),
+    % Calculamos espacio real (restando los [-])
+    exclude(es_obstaculo, Col, SinParedes),
+    length(SinParedes, Capacidad),
+    length(Sobrevivientes, Vivos),
+    % Generamos randoms
+    Nuevos is Capacidad - Vivos,
+    crear_vacios_random(Nuevos, Generados),
+    append(Generados, Sobrevivientes, Fichas),
+    % Acomodamos respetando los obstáculos del molde
+    acomodar_con_obstaculos(Col, Fichas, NewCol), !.
+
+% Esta es la nueva función "mapeadora"
+acomodar_con_obstaculos([], [], []).
+% Si hay obstáculo, se queda y NO consume ficha
+acomodar_con_obstaculos([C|RestoM], Fichas, [C|RestoR]) :-
+    es_obstaculo(C), !,
+    acomodar_con_obstaculos(RestoM, Fichas, RestoR).
+% Si hay agua, pone ficha + agua y consume una ficha
+acomodar_con_obstaculos([C|RestoM], [[Color]|RestoF], [[Color, ~]|RestoR]) :-
+    (C = [~] ;
+        member(~, C)), !,
+    acomodar_con_obstaculos(RestoM, RestoF, RestoR).
+% Si es celda normal, pone ficha y consume una ficha
+acomodar_con_obstaculos([_|RestoM], [F|RestoF], [F|RestoR]) :-
+    acomodar_con_obstaculos(RestoM, RestoF, RestoR).
+
+
+% --- AUXILIARES ---
+crear_vacios_random(0, []) :- !.
+crear_vacios_random(N, [[Color]|R]) :-
+    N > 0,
+    random_member(Color, [r,g,y,c,p]),
+    N1 is N - 1,
+    crear_vacios_random(N1, R).
+
+tiene_color_real(Celda) :- 
+    Celda = [Color|_], 
+    es_color(Color).
+
+es_agua([~]).
+es_obstaculo([-]).
+
+%%-----Esta es la logica anterior por si la quieren ver, osea anda pero con fallas
+/*logica de la gravedad*/
+    /*segmentamos por los obstaculos*/
+/*
+
+no_vacio(Celda) :-
+    Celda \= [],    
+    Celda \= [-].
+
+crear_vacios(0, []).
+crear_vacios(N, [[]|R]) :-
+    N > 0,
+    N1 is N - 1,
+    crear_vacios(N1, R).
 
 tiene_color([Color|Resto]) :- 
     es_color(Color);
     es_agua(Resto).
-/*puto**/
-%es_agua([_,~]).
-es_agua([~]).
 
-es_obstaculo([-]).
-
-
-
-/*logica de la gravedad*/
-    /*segmentamos por los obstaculos*/
 separar_por_obstaculos([], []).
 separar_por_obstaculos([[-]|R], [[[-]]|Segs]) :-
     separar_por_obstaculos(R, Segs).
@@ -273,14 +350,20 @@ tomar_segmento([], [], []).
 tomar_segmento([[-]|R], [], [[-]|R]) :- !.
 tomar_segmento([X|R], [X|Seg], Resto) :-
     tomar_segmento(R, Seg, Resto).
-    
+    */
 /*logica de la gravedad*/
     /*gravedad en segmento*/
-% 1. Definimos qué es una ficha con color (venga con agua o no)
-tiene_color_real(Celda) :- 
-    Celda = [Color|_], 
-    es_color(Color).
-gravedad_segmento([[-]], [[-]]) :- !.
+    %Definimos qué es una ficha con color (venga con agua o no)
+/*
+
+/*particionar([], _, []).
+particionar(ListaPlana, NumCols, [Fila | RestoFilas]) :-
+    length(Fila, NumCols),                  % Crea una lista del tamaño de las columnas (8)
+    append(Fila, Resto, ListaPlana),        % Corta la lista plana original
+    particionar(Resto, NumCols, RestoFilas). % Repite con lo que sobra
+*/
+*/
+/*gravedad_segmento([[-]], [[-]]) :- !.
 % 2. Gravedad del segmento
 gravedad_segmento(Seg, NewSeg) :-
     % EXTRAER: Solo nos importan los colores que sobrevivieron, 
@@ -310,31 +393,14 @@ acomodar([Celda|RestoMolde], [[Color]|RestoFichas], [[Color, ~]|RestoResultado])
 acomodar([_|RestoMolde], [Ficha|RestoFichas], [Ficha|RestoResultado]) :-
     !,%si ya llegue hasta aca no necesito seguir probando otras opciones, si no se cumple esta es porque el molde no tenia agua y entonces pongo la ficha sin agua
     acomodar(RestoMolde, RestoFichas, RestoResultado).
+*/
 
-% --- AUXILIARES ---
-crear_vacios_random(0, []) :- !.
-crear_vacios_random(N, [[Color]|R]) :-
-    N > 0,
-    random_member(Color, [r,g,y,c,p]),
-    N1 is N - 1,
-    crear_vacios_random(N1, R).
-
-
-no_vacio(Celda) :-
-    Celda \= [],    
-    Celda \= [-].
-
-crear_vacios(0, []).
-crear_vacios(N, [[]|R]) :-
-    N > 0,
-    N1 is N - 1,
-    crear_vacios(N1, R).
 /*logica de la gravedad*/
     /*aplicar a toda la columna*/
-procesar_segmento([[-]], [[-]]) :- !.
+/*procesar_segmento([[-]], [[-]]) :- !.
 procesar_segmento(Seg, NewSeg) :-
-    gravedad_segmento(Seg, NewSeg).
-gravedad_columna_con_obstaculos(Col, NewCol) :-
+    gravedad_segmento(Seg, NewSeg).*/
+/*gravedad_columna_con_obstaculos(Col, NewCol) :-
         writeln('COL ORIGINAL'), writeln(Col),
     separar_por_obstaculos(Col, Segs),
         writeln('SEGS'), writeln(Segs),
@@ -342,4 +408,5 @@ gravedad_columna_con_obstaculos(Col, NewCol) :-
         writeln('NEW SEGS'), writeln(NewSegs),
     append(NewSegs, NewCol),
     %append/2 en SWI-Prolog sí concatena lista de listas.
-        writeln('NEW COL'), writeln(NewCol).
+        writeln('NEW COL'), writeln(NewCol).*/
+
