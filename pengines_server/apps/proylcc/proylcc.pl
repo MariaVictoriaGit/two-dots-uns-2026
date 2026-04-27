@@ -3,14 +3,15 @@
 [-]        % celda vacía / no utilizable
 []         % celda vacía tras eliminación
 [c, ~]     % punto celeste con agua
-ESTRUCTURA////////////////////////////////////////////////////////////////////////////////////////////
-( Condicion ->    COMO EL IF-THEN         ME GUSTARIA HACERLO EN PROCESAR_CELDA PARA QUE NO QUEDE EL BACKTRAKING
+ESTRUCTURA ///
+(Condicion ->  COMO EL IF-THEN  
     Entonces
 ;
     Sino
 )
 
 Celda = [Color , _]
+
 */
 :- module(proylcc,
     [  
@@ -18,20 +19,26 @@ Celda = [Color , _]
     ]).
 :-use_module(library(lists)).
 :- use_module(library(random)).
+
 % connect(+Grid, +NumOfColumns, +Path, -Effects)
 % donde Effects es una lista de effect(ResultingGrid, AuxiliaryInfo)
 % donde AuxiliaryInfo es una lista de información adicional que se quiera devolver
 % para la UI (por ejemplo, los objetivos cumplidos, o qué celdas se vieron afectadas, etc).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%ENTRADA PRINCIPAL
-connect(Grid, NumOfColumns, Path, Effects) :- %motor de todo el manejo de la jugada
-    %verificamos que el camino sea valido
+% ENTRADA PRINCIPAL
+connect(Grid, NumOfColumns, Path, Effects) :- % motor de todo el manejo de la jugada
+    % verificamos que el camino sea valido
     camino_valido(Path, NumOfColumns, Grid),
     mismo_color(Grid, Path, Color, Cantidad),
-    %To do: Bomba
-    /*(es_bomba(Path) -> 
-        eliminar_colores(Grid, Color, GridPreGravedad),
-        expandir_agua_en_jugada(Grid, Path, NumOfColumns, IndicesAgua)
+    % TO DO: Bomba
+    (es_cerrado(Path) -> 
+        % CASO CERRADO: Expande agua desde el path y desde adyacentes al color
+        expandir_agua_en_jugada(Grid, Path, NumOfColumns, IndicesAgua1),
+        aplicar_agua_a_grilla(Grid, IndicesAgua1, GridConAgua1, _),
+        expandir_agua_desde_colores_eliminados(GridConAgua1, Color, NumOfColumns, IndicesAgua2),
+        append(IndicesAgua1, IndicesAgua2, IndicesAgua),
+        aplicar_agua_a_grilla(Grid, IndicesAgua, GridConAgua, _),
+        eliminar_colores(GridConAgua, Color, GridPreGravedad)
     ;   
         % CASO NORMAL: Solo el camino
         expandir_agua_en_jugada(Grid, Path, NumOfColumns, IndicesAgua),
@@ -46,20 +53,7 @@ connect(Grid, NumOfColumns, Path, Effects) :- %motor de todo el manejo de la jug
     Effects = [
         effect(GridPreGravedad, [achieved([[Color, Cantidad], [~, CantidadAgua]])]),
         effect(GridFinal, [cae])
-    ].*/
-    % --- EXPANSIÓN Agua ---
-    expandir_agua_en_jugada(Grid, Path, NumOfColumns, Indices_con_agua),
-    aplicar_agua_a_grilla(Grid, Indices_con_agua, GridConAgua, Nuevos),
-    length(Nuevos, CantidadAgua),
-    % --------------------------------------
-    eliminar_path(GridConAgua, Path, Grid1),
-    
-    gravedad(Grid1, NumOfColumns, Grid2), %los comentados no borrarlos son para cuando ande la gravedad
-    
-    Effects=[
-        effect(Grid1, [achieved([[Color, Cantidad], [~, CantidadAgua]])]), %logro de haber eliminado el camino
-        effect(Grid2, [cae])%        
-    ]. %unificamos
+    ].
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %VALIDAMOS LA JUGADA
@@ -104,15 +98,16 @@ color_en(Grid, Indice, Color):-
     es_color(Color).
 
 es_color(X):-
-    member(X, [r, g, b, y, c, p]).%cuida no borrar el efecto, si el color
+    member(X, [r, g, y, c, p]). % cuida no borrar el efecto, si el color
 
 mismo_color(Grid, [X|Z], Color, Cantidad):-
     color_en(Grid, X, Color),
     forall(member(Y, Z), color_en(Grid, Y, Color)),
     length([X|Z], Cantidad).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 %ACCESOS
-/*ver si buscamos en un lugar valido e instanciamos el elemento
+/* ver si buscamos en un lugar valido e instanciamos el elemento
 var(N)       no tiene valor
 nonvar(N)    tiene valor*/
 esta_elemento(E, Lista, X) :-
@@ -156,16 +151,20 @@ remover_color(_, []).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %-----bomba-------------------
-es_bomba(Path) :-
+es_cerrado(Path) :-
+    length(Path, Len),
+    Len > 2,
     Path = [Primero|Resto],
     last(Resto, Ultimo),
     Primero == Ultimo.
-es_bomba([_|Resto]) :- 
+es_cerrado([_|Resto]) :- 
+    length(Resto, Len),
+    Len > 2,
     Resto = [X|XResto],
     last(Resto, Ultimo),
     (X == Ultimo -> 
         true ; 
-        es_bomba(XResto)).
+        es_cerrado(XResto)).
 
 eliminar_colores([], _, []).
 eliminar_colores([Celda|Resto], Color, [NuevaCelda|RestoNew]) :-
@@ -176,8 +175,22 @@ eliminar_colores([Celda|Resto], Color, [NuevaCelda|RestoNew]) :-
     ),
     eliminar_colores(Resto, Color, RestoNew).
 
+% Encuentra índices adyacentes a agua de los puntos donde estaba ese color
+encontrar_indices_color(Grid, Color, Indices) :-
+    findall(I, (nth0(I, Grid, Celda), Celda = [Color|_]), Indices).
 
-% ---------------Expancion Agua-------------------
+expandir_agua_desde_colores_eliminados(Grid, Color, NumOfColumns, IndicesAExpandir) :-
+    encontrar_indices_color(Grid, Color, IndicesColor),
+    findall(I, (
+        member(I, IndicesColor),
+        (   
+            % El punto tiene agua adyacente
+            adyacente(I, V, NumOfColumns, Grid),
+            celda_tiene_agua(Grid, V)
+        )
+    ), IndicesAExpandir).
+
+% ---------------Expansión Agua-------------------
 expandir_agua_en_jugada(Grid, Path, NumOfColumns, Resultado) :-
     % CONDICIÓN: Buscamos si existe un punto P en el camino que...
     member(P, Path), 
