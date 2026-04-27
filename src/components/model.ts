@@ -1,6 +1,6 @@
 import { PrologTerm } from '../services/PengineClient';
 
-export const colors = ["r", "c", "g", "p", "y"]; //aca se puede cambiar los colores
+export const colors = ["r", "c", "g", "p", "y", "b"]; // aca se puede cambiar los colores
 
 export function colorToCss(color: typeof colors[number]): string {
     switch (color) {
@@ -9,7 +9,8 @@ export function colorToCss(color: typeof colors[number]): string {
         case "g": return "#2cac75";
         case "p": return "#a4547d";
         case "y": return "#fecd6c";
-        default: return "black";
+        case "b": return "#000000";
+        default: return "white";
     }
 }
 

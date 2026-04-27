@@ -30,17 +30,34 @@ connect(Grid, NumOfColumns, Path, Effects) :- % motor de todo el manejo de la ju
     % verificamos que el camino sea valido
     camino_valido(Path, NumOfColumns, Grid),
     mismo_color(Grid, Path, Color, Cantidad),
-    % TO DO: Bomba
-    (es_cerrado(Path) -> 
-        % CASO CERRADO: Expande agua desde el path y desde adyacentes al color
-        expandir_agua_en_jugada(Grid, Path, NumOfColumns, IndicesAgua1),
-        aplicar_agua_a_grilla(Grid, IndicesAgua1, GridConAgua1, _),
-        expandir_agua_desde_colores_eliminados(GridConAgua1, Color, NumOfColumns, IndicesAgua2),
-        append(IndicesAgua1, IndicesAgua2, IndicesAgua),
-        aplicar_agua_a_grilla(Grid, IndicesAgua, GridConAgua, _),
-        eliminar_colores(GridConAgua, Color, GridPreGravedad)
+    length(Grid, TotalCells),
+
+    % Verificar si es bomba
+    (es_cerrado(Path) ->
+        encontrar_indices_color(Grid, Color, IndicesColorTotal),
+        length(IndicesColorTotal, CantidadRealColor),
+        encontrar_posiciones_bombas(Path, NumOfColumns, TotalCells, IndicesBombas),
+        (IndicesBombas \= [] ->
+            % CASO BOMBA: Coloca bombas negras donde corresponde
+            expandir_agua_en_jugada(Grid, Path, NumOfColumns, IndicesAgua1),
+            aplicar_agua_a_grilla(Grid, IndicesAgua1, GridConAgua1, _),
+            expandir_agua_desde_colores_eliminados(GridConAgua1, Color, NumOfColumns, IndicesAgua2),
+            append(IndicesAgua1, IndicesAgua2, IndicesAgua),
+            aplicar_agua_a_grilla(Grid, IndicesAgua, GridConAgua, _),
+            eliminar_colores(GridConAgua, Color, GridSinColores),
+            colocar_bombas_en_grid(GridSinColores, IndicesBombas, 0, GridPreGravedad)
+        ;
+            % CASO CERRADO NORMAL: Expande agua desde el path y desde adyacentes al color
+            expandir_agua_en_jugada(Grid, Path, NumOfColumns, IndicesAgua1),
+            aplicar_agua_a_grilla(Grid, IndicesAgua1, GridConAgua1, _),
+            expandir_agua_desde_colores_eliminados(GridConAgua1, Color, NumOfColumns, IndicesAgua2),
+            append(IndicesAgua1, IndicesAgua2, IndicesAgua),
+            aplicar_agua_a_grilla(Grid, IndicesAgua, GridConAgua, _),
+            eliminar_colores(GridConAgua, Color, GridPreGravedad)
+        )
     ;   
         % CASO NORMAL: Solo el camino
+        CantidadRealColor = Cantidad,
         expandir_agua_en_jugada(Grid, Path, NumOfColumns, IndicesAgua),
         aplicar_agua_a_grilla(Grid, IndicesAgua, GridConAgua, _),
         eliminar_path(GridConAgua, Path, GridPreGravedad)
@@ -48,12 +65,27 @@ connect(Grid, NumOfColumns, Path, Effects) :- % motor de todo el manejo de la ju
     aplicar_agua_a_grilla(Grid, IndicesAgua, _, NuevosAgua),
     length(NuevosAgua, CantidadAgua),
 
-    % 4. Gravedad final
-    gravedad(GridPreGravedad, NumOfColumns, GridFinal),
-    Effects = [
-        effect(GridPreGravedad, [achieved([[Color, Cantidad], [~, CantidadAgua]])]),
-        effect(GridFinal, [cae])
-    ].
+   % 3. Gravedad Inicial (caen las fichas y se acomodan las bombas negras)
+    gravedad(GridPreGravedad, NumOfColumns, GridPostGravedad1),
+
+    % 4. Explosión y Gravedad Final
+    % (Si hay bombas en la grilla, explotan y vuelve a actuar la gravedad)
+    explosionar_bombas(GridPostGravedad1, NumOfColumns, GridPostExplosion, HuboExplosion, AchievedBombas),
+    (HuboExplosion == true ->
+        gravedad(GridPostExplosion, NumOfColumns, GridFinal),
+        Effects = [
+            effect(GridPreGravedad, [achieved([[Color, CantidadRealColor], [~, CantidadAgua]])]),
+            effect(GridPostGravedad1, [cae]),
+            effect(GridPostExplosion, [explosion, achieved(AchievedBombas)]),
+            effect(GridFinal, [cae])
+        ]
+    ;
+        GridFinal = GridPostGravedad1,
+        Effects = [
+            effect(GridPreGravedad, [achieved([[Color, CantidadRealColor], [~, CantidadAgua]])]),
+            effect(GridFinal, [cae])
+        ]
+    ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %VALIDAMOS LA JUGADA
@@ -98,7 +130,7 @@ color_en(Grid, Indice, Color):-
     es_color(Color).
 
 es_color(X):-
-    member(X, [r, g, y, c, p]). % cuida no borrar el efecto, si el color
+    member(X, [r, g, y, c, p, b]). % cuida no borrar el efecto, si el color
 
 mismo_color(Grid, [X|Z], Color, Cantidad):-
     color_en(Grid, X, Color),
@@ -142,6 +174,8 @@ procesar_celda(Indice, Path, Celda, NewCelda) :-
     remover_color(Celda, NewCelda).
 
 procesar_celda(_, _, Celda, Celda).
+
+remover_color([-], [-]) :- !.
 remover_color(Celda, [~]) :- 
     member(~, Celda), !.
 remover_color(_, []).
@@ -165,6 +199,105 @@ es_cerrado([_|Resto]) :-
     (X == Ultimo -> 
         true ; 
         es_cerrado(XResto)).
+
+% Encontrar posiciones de bombas iterando por toda la grilla y buscando celdas encerradas
+encontrar_posiciones_bombas(Path, NumOfColumns, TotalCells, IndicesBombas) :-
+    MaxI is TotalCells - 1,
+    findall(I, (
+        between(0, MaxI, I),
+        \+ member(I, Path),
+        es_interior(I, Path, NumOfColumns)
+    ), IndicesBombas).
+
+% Un punto es interior si está rodeado por el path en las 4 direcciones
+es_interior(I, Path, Cols) :-
+    Row is I // Cols,
+    Col is I mod Cols,
+    member(L, Path), L // Cols =:= Row, L < I, !,   % Límite Izquierdo
+    member(R, Path), R // Cols =:= Row, R > I, !,   % Límite Derecho
+    member(T, Path), T mod Cols =:= Col, T < I, !,  % Límite Superior
+    member(B, Path), B mod Cols =:= Col, B > I, !.  % Límite Inferior
+
+% Coloca las bombas respetando el agua si la hubiera
+colocar_bombas_en_grid([], _, _, []).
+colocar_bombas_en_grid([Celda|Resto], IndicesBombas, I, [NuevaCelda|RestoNew]) :-
+    (   member(I, IndicesBombas) ->
+        (member(~, Celda) -> NuevaCelda = [b, ~] ; NuevaCelda = [b])
+    ;   
+        NuevaCelda = Celda
+    ),
+    NextI is I + 1,
+    colocar_bombas_en_grid(Resto, IndicesBombas, NextI, RestoNew).
+
+adyacente_bomba(X, Y, NumOfColumns, Grid) :-
+    length(Grid, Len),
+    RowX is X // NumOfColumns,
+    ColX is X mod NumOfColumns,
+    between(-1, 1, DRow),
+    between(-1, 1, DCol),
+    (DRow \= 0 ; DCol \= 0),
+    RowY is RowX + DRow,
+    ColY is ColX + DCol,
+    RowY >= 0,
+    ColY >= 0,
+    ColY < NumOfColumns,
+    Y is RowY * NumOfColumns + ColY,
+    Y < Len.
+
+% Detecta dónde cayeron las bombas, busca vecinos y limpia
+explosionar_bombas(Grid, NumOfColumns, GridFinal, HuboExplosion, AchievedBombas) :-
+    % Buscamos el color 'b' dentro de las celdas
+    findall(I, (nth0(I, Grid, Celda), member(b, Celda)), IndicesBombas),
+    (   IndicesBombas \= [] ->
+        HuboExplosion = true,
+        % Encontrar adyacentes a las bombas
+        findall(Adj, (
+            member(B, IndicesBombas),
+            adyacente_bomba(B, Adj, NumOfColumns, Grid)
+        ), IndicesAdyacentes),
+        % Juntamos bombas y adyacentes, y eliminamos duplicados con sort/2
+        append(IndicesBombas, IndicesAdyacentes, IndicesBrutos),
+        sort(IndicesBrutos, IndicesAEliminar),
+        
+        contar_colores_destruidos(Grid, IndicesAEliminar, AchievedBombas),
+        
+        eliminar_indices(Grid, IndicesAEliminar, 0, GridFinal)
+    ;   
+        HuboExplosion = false,
+        GridFinal = Grid,
+        AchievedBombas = []
+    ).
+
+contar_colores_destruidos(Grid, Indices, Achieved) :-
+    findall(Color, (
+        member(I, Indices),
+        nth0(I, Grid, Celda),
+        Celda = [Color|_],
+        es_color(Color)
+    ), ColoresDestruidos),
+    contar_ocurrencias(ColoresDestruidos, Achieved).
+
+contar_ocurrencias([], []).
+contar_ocurrencias([H|T], Frecuencias) :-
+    contar_ocurrencias(T, RestoFrecuencias),
+    actualizar_frecuencia(H, RestoFrecuencias, Frecuencias).
+
+actualizar_frecuencia(C, [], [[C, 1]]).
+actualizar_frecuencia(C, [[C, N]|T], [[C, N1]|T]) :- N1 is N + 1, !.
+actualizar_frecuencia(C, [[C1, N1]|T], [[C1, N1]|T2]) :-
+    C \= C1,
+    actualizar_frecuencia(C, T, T2).
+
+% Elimina las celdas usando remover_color/2 para no romper la lógica de agua/obstáculos
+eliminar_indices([], _, _, []).
+eliminar_indices([Celda|Resto], Indices, I, [NuevaCelda|RestoNew]) :-
+    (   member(I, Indices) ->
+        remover_color(Celda, NuevaCelda)
+    ;   
+        NuevaCelda = Celda
+    ),
+    NextI is I + 1,
+    eliminar_indices(Resto, Indices, NextI, RestoNew).
 
 eliminar_colores([], _, []).
 eliminar_colores([Celda|Resto], Color, [NuevaCelda|RestoNew]) :-
