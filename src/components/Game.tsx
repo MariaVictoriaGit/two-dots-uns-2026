@@ -143,6 +143,14 @@ function Game() {
     return null;
   }
 
+  const isAnimating = waiting || historyGrid !== undefined;
+  const gameStarted = grid !== null && moves !== null && Object.keys(objectives).length > 0;
+  
+  const isVictory = gameStarted && Object.values(objectives).every(val => val! <= 0);
+  const isDefeat = gameStarted && moves !== null && moves <= 0 && !isVictory;
+  
+  const showGameOver = !isAnimating && (isVictory || isDefeat);
+
   return (
     <div className={styles.game}>
       <div className={styles.header}>
@@ -159,8 +167,26 @@ function Game() {
         path={path} //le paso camino
         onPathChange={onPathChange} //que hacer cuando el jugdor avanza o retrocede en el camino
         onDone={onPathDone} //el jugador solto el mouse, entonces se termina el camino
-        readonly={waiting || historyGrid !== undefined} 
+        readonly={waiting || historyGrid !== undefined || showGameOver} 
       />
+
+      {showGameOver && (
+        <div className={styles.gameOverOverlay}>
+          <div className={styles.gameOverModal}>
+            <h1 className={isVictory ? styles.victoryText : styles.defeatText}>
+              {isVictory ? '¡Victoria!' : '¡Derrota!'}
+            </h1>
+            <button className={styles.replayButton} onClick={() => {
+              setGrid(null);
+              setMoves(null);
+              setObjectives({});
+              initGame();
+            }}>
+              Jugar de nuevo
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
