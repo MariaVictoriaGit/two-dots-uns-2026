@@ -26,13 +26,14 @@ Celda = [Color , _]
 % para la UI (por ejemplo, los objetivos cumplidos, o qué celdas se vieron afectadas, etc).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % ENTRADA PRINCIPAL
+
 connect(Grid, NumOfColumns, Path, Effects) :- % motor de todo el manejo de la jugada
-    % verificamos que el camino sea valido
+    % verificamos que el camino sea válido
     camino_valido(Path, NumOfColumns, Grid),
     mismo_color(Grid, Path, Color, Cantidad),
     length(Grid, TotalCells),
 
-    % Verificar si es bomba
+    % Verificamo si es cerrado y luego bomba
     (es_cerrado(Path) ->
         encontrar_indices_color(Grid, Color, IndicesColorTotal),
         length(IndicesColorTotal, CantidadRealColor),
@@ -88,11 +89,12 @@ connect(Grid, NumOfColumns, Path, Effects) :- % motor de todo el manejo de la ju
     ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%VALIDAMOS LA JUGADA
-/* Logica
+% VALIDAMOS LA JUGADA
+/* Lógica
 Grilla de puntos de colores conectables.
 El usuario debe poder seleccionar y conectar puntos adyacentes del mismo color
 para formar una jugada válida. Al completar la jugada, esos puntos desaparecen.*/
+
 camino_valido([_], _, _).
 camino_valido([X, Y|Resto], NumOfColumns, Grid):-
     celda_con_color(Grid, X),
@@ -130,7 +132,7 @@ color_en(Grid, Indice, Color):-
     es_color(Color).
 
 es_color(X):-
-    member(X, [r, g, y, c, p, b]). % cuida no borrar el efecto, si el color
+    member(X, [r, g, y, c, p, b]).
 
 mismo_color(Grid, [X|Z], Color, Cantidad):-
     color_en(Grid, X, Color),
@@ -138,17 +140,17 @@ mismo_color(Grid, [X|Z], Color, Cantidad):-
     length([X|Z], Cantidad).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%ACCESOS
-/* ver si buscamos en un lugar valido e instanciamos el elemento
+% ACCESOS
+/* ver si buscamos en un lugar válido e instanciamos el elemento
 var(N)       no tiene valor
-nonvar(N)    tiene valor*/
+nonvar(N)    tiene valor */
 esta_elemento(E, Lista, X) :-
     E >= 0,
     nth0(E, Lista, X).
 /*nth0/3 es un predicado estándar de Prolog para acceder a elementos de una lista por índice empezando en 0.*/
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%ELIMINACION
+% ELIMINACIÓN
 
 eliminar_path(Grid, Path, NewGrid):-
     eliminar_path_rec(Grid, Path, 0, NewGrid).
@@ -160,7 +162,7 @@ eliminar_path_rec([Celda|Resto], Path, Indice, [NewCelda|NewResto]):-
     eliminar_path_rec(Resto, Path, NextIndice, NewResto).
 
 
-/*procesar_celda(Indice, Path, Celda, NewCelda):-
+/* procesar_celda(Indice, Path, Celda, NewCelda):-
     (
         member(Indice, Path),
         remover_color(Celda, NewCelda)
@@ -169,6 +171,7 @@ eliminar_path_rec([Celda|Resto], Path, Indice, [NewCelda|NewResto]):-
         \+member(Indice, Path),
         NewCelda = Celda
     ).*/
+
 procesar_celda(Indice, Path, Celda, NewCelda) :-
     member(Indice, Path), !,
     remover_color(Celda, NewCelda).
@@ -200,23 +203,73 @@ es_cerrado([_|Resto]) :-
         true ; 
         es_cerrado(XResto)).
 
-% Encontrar posiciones de bombas iterando por toda la grilla y buscando celdas encerradas
+% Encontrar posiciones de bombas usando Flood Fill desde los bordes
 encontrar_posiciones_bombas(Path, NumOfColumns, TotalCells, IndicesBombas) :-
+    bordes_grilla(TotalCells, NumOfColumns, Bordes),
+    % Filtramos los bordes que no son parte del camino (por ahí entra el agua)
+    exclude(pertenece_a(Path), Bordes, BordesLibres),
+    % Hacemos la inundación (flood fill)
+    inundar(BordesLibres, Path, NumOfColumns, TotalCells, [], Exterior),
+    % Las bombas son los puntos que no están ni en el camino ni en el exterior
     MaxI is TotalCells - 1,
     findall(I, (
         between(0, MaxI, I),
         \+ member(I, Path),
-        es_interior(I, Path, NumOfColumns)
+        \+ member(I, Exterior)
     ), IndicesBombas).
 
-% Un punto es interior si está rodeado por el path en las 4 direcciones
-es_interior(I, Path, Cols) :-
-    Row is I // Cols,
-    Col is I mod Cols,
-    member(L, Path), L // Cols =:= Row, L < I, !,   % Límite Izquierdo
-    member(R, Path), R // Cols =:= Row, R > I, !,   % Límite Derecho
-    member(T, Path), T mod Cols =:= Col, T < I, !,  % Límite Superior
-    member(B, Path), B mod Cols =:= Col, B > I, !.  % Límite Inferior
+% Helper genérico
+pertenece_a(Lista, Elemento) :- member(Elemento, Lista).
+
+% Encontrar todas las posiciones de los bordes de la grilla sin duplicados
+bordes_grilla(TotalCells, NumOfColumns, BordesUnicos) :-
+    MaxI is TotalCells - 1,
+    findall(I, (
+        between(0, MaxI, I),
+        es_borde(I, NumOfColumns, TotalCells)
+    ), Bordes),
+    sort(Bordes, BordesUnicos).
+
+% Un índice es borde si está en la fila 0, última fila, columna 0 o última columna
+es_borde(I, NumOfColumns, _) :- I < NumOfColumns.
+es_borde(I, NumOfColumns, TotalCells) :- I >= TotalCells - NumOfColumns.
+es_borde(I, NumOfColumns, _) :- I mod NumOfColumns =:= 0.
+es_borde(I, NumOfColumns, _) :- I mod NumOfColumns =:= NumOfColumns - 1.
+
+% Flood Fill (Inundación)
+% inundar(ToVisit, Path, NumOfColumns, TotalCells, Visited, FinalVisited)
+inundar([], _, _, _, Visited, Visited).
+inundar([Act | RestoToVisit], Path, NumOfColumns, TotalCells, Visited, FinalVisited) :-
+    % Si el nodo actual ya fue visitado (por precaución), lo salteamos
+    ( member(Act, Visited) ->
+        inundar(RestoToVisit, Path, NumOfColumns, TotalCells, Visited, FinalVisited)
+    ;
+        % Agregamos Act a los visitados
+        NuevoVisited = [Act | Visited],
+        % Buscamos vecinos válidos (adentro de grilla, ortogonales)
+        vecinos_ortogonales(Act, NumOfColumns, TotalCells, Vecinos),
+        % Filtramos vecinos: que no estén en Path, no estén en NuevoVisited, no estén en RestoToVisit
+        findall(V, (
+            member(V, Vecinos),
+            \+ member(V, Path),
+            \+ member(V, NuevoVisited),
+            \+ member(V, RestoToVisit)
+        ), VecinosValidos),
+        % Agregamos los vecinos válidos a la cola de procesamiento
+        append(RestoToVisit, VecinosValidos, NuevoToVisit),
+        % Llamada recursiva
+        inundar(NuevoToVisit, Path, NumOfColumns, TotalCells, NuevoVisited, FinalVisited)
+    ).
+
+% Vecinos ortogonales (arriba, abajo, izquierda, derecha) respetando los límites
+vecinos_ortogonales(I, NumOfColumns, TotalCells, Vecinos) :-
+    Col is I mod NumOfColumns,
+    findall(V, (
+        (V is I - NumOfColumns, V >= 0) ; % Arriba
+        (V is I + NumOfColumns, V < TotalCells) ; % Abajo
+        (V is I - 1, Col > 0) ; % Izquierda
+        (V is I + 1, Col < NumOfColumns - 1) % Derecha
+    ), Vecinos).
 
 % Coloca las bombas respetando el agua si la hubiera
 colocar_bombas_en_grid([], _, _, []).
@@ -231,17 +284,17 @@ colocar_bombas_en_grid([Celda|Resto], IndicesBombas, I, [NuevaCelda|RestoNew]) :
 
 adyacente_bomba(X, Y, NumOfColumns, Grid) :-
     length(Grid, Len),
-    RowX is X // NumOfColumns,
+    FilaX is X // NumOfColumns,
     ColX is X mod NumOfColumns,
-    between(-1, 1, DRow),
+    between(-1, 1, DFila),
     between(-1, 1, DCol),
-    (DRow \= 0 ; DCol \= 0),
-    RowY is RowX + DRow,
+    (DFila \= 0 ; DCol \= 0),
+    FilaY is FilaX + DFila,
     ColY is ColX + DCol,
-    RowY >= 0,
+    FilaY >= 0,
     ColY >= 0,
     ColY < NumOfColumns,
-    Y is RowY * NumOfColumns + ColY,
+    Y is FilaY * NumOfColumns + ColY,
     Y < Len.
 
 % Detecta dónde cayeron las bombas, busca vecinos y limpia
@@ -354,7 +407,7 @@ aplicar_agua_a_grilla(Grid, IndicesADarAgua, NewGrid, Nuevos) :-
 aplicar_agua_rec([], _, _, [], []).
 % Caso recursivo: procesamos cada celda una por una
 aplicar_agua_rec([CeldaOriginal|RestoGrid], Indices, I, [NuevaCelda|RestoNew], Nuevos) :-
-    (   member(I, Indices) -> %los indices son los que afecta el agua
+    (   member(I, Indices) -> % los indices son los que afecta el agua
         % SI el índice actual I está en la lista para mojar:
         (   member(~, CeldaOriginal) -> 
             % Si ya tenía agua (ej: [r, ~]), la dejamos igual
