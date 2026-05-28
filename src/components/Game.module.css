@@ -85,9 +85,10 @@
 }
 
 .objectiveWater {
+  font-size: 18px;
   width: 18px;
   height: 18px;
-  fill: #38bdf8;
+  color: #38bdf8;
   display: inline-block;
   vertical-align: middle;
 }
