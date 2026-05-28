@@ -70,11 +70,23 @@ function Board({ grid, numOfColumns, path, onPathChange, onDone, readonly }: Boa
         <div className={styles.board} style={{ '--num-columns': numOfColumns, '--num-rows': numOfRows } as React.CSSProperties}>
             <div className={styles.cells}>
                 {grid.map((cell, pos) => {
+                    const row = Math.floor(pos / numOfColumns);
+                    const col = pos % numOfColumns;
+                    const hasWater = (p: number) => {
+                        return p >= 0 && p < grid.length && grid[p].includes("~");
+                    };
+                    const waterNeighbors = {
+                        top: row > 0 ? hasWater(pos - numOfColumns) : false,
+                        bottom: row < numOfRows - 1 ? hasWater(pos + numOfColumns) : false,
+                        left: col > 0 ? hasWater(pos - 1) : false,
+                        right: col < numOfColumns - 1 ? hasWater(pos + 1) : false,
+                    };
                     return (
                         <Cell
                             value={cell}
                             onMouseDown={() => onDotDown(pos)}
                             onMouseEnter={() => onDotHover(pos)}
+                            waterNeighbors={waterNeighbors}
                             key={pos}
                         />
                     );

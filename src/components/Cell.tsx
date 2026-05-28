@@ -1,3 +1,4 @@
+import React from 'react';
 import { CellContent, colorToCss } from "./model";
 import styles from "./Cell.module.css";
 
@@ -6,13 +7,28 @@ interface CellProps {
     value: CellContent[];
     onMouseEnter: () => void;
     onMouseDown: () => void;
+    waterNeighbors?: {
+        top: boolean;
+        right: boolean;
+        bottom: boolean;
+        left: boolean;
+    };
 }
 
-function Cell({ value, onMouseEnter, onMouseDown }: CellProps) {
+function Cell({ value, onMouseEnter, onMouseDown, waterNeighbors }: CellProps) {
+    const { top = false, right = false, bottom = false, left = false } = waterNeighbors || {};
 
     const content = value.map((cellContent, i) => {
         switch (cellContent) {
-            case "~": return <div className={styles.water} key={i} />;
+            case "~": {
+                const style = {
+                    "--tl-radius": (!top && !left) ? "50%" : "0px",
+                    "--tr-radius": (!top && !right) ? "50%" : "0px",
+                    "--br-radius": (!bottom && !right) ? "50%" : "0px",
+                    "--bl-radius": (!bottom && !left) ? "50%" : "0px",
+                } as React.CSSProperties;
+                return <div className={styles.water} style={style} key={i} />;
+            }
             case "-": return <div className={styles.empty} key={i} />;
             default: return (
                 <button

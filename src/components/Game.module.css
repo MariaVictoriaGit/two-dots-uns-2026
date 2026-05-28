@@ -2,27 +2,29 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(135deg, var(--md-surface-container-lowest) 0%, var(--md-surface) 100%);
+  background: #3a5783;
   align-items: center;
   min-height: 100vh;
   padding: 40px 20px;
 }
 
-/* Unified Material You Pill Container Header */
+/* contenedor del header */
 .header {
   margin: 0 auto 32px auto;
   background: var(--md-surface-container-high);
   color: var(--md-on-surface);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  display: inline-flex; /* dynamically fits contents */
+  display: inline-flex;
+  /* acomoda los contenidos dinámicamente */
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
   font-family: var(--font-family);
   padding: 10px 24px;
-  border-radius: 100px; /* Perfect pill capsule shape */
+  border-radius: 100px;
+  /* Perfect pill capsule shape */
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2),
-              inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(10px);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -83,11 +85,11 @@
 }
 
 .objectiveWater {
-  width: 14px;
-  height: 14px;
-  background-color: #38bdf8;
-  border-radius: 4px;
-  box-shadow: inset 0 -1px 2px rgba(0, 0, 0, 0.2), 0 1px 2px rgba(0, 0, 0, 0.2);
+  width: 18px;
+  height: 18px;
+  fill: #38bdf8;
+  display: inline-block;
+  vertical-align: middle;
 }
 
 .objectiveText {
@@ -124,7 +126,7 @@
   border-radius: 28px;
   text-align: center;
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5),
-              inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.08);
   max-width: 90vw;
   width: 320px;
@@ -158,7 +160,8 @@
   background-color: var(--md-primary);
   color: var(--md-on-primary);
   border: none;
-  border-radius: 24px; /* Pill button styling */
+  border-radius: 24px;
+  /* Pill button styling */
   cursor: pointer;
   box-shadow: 0 4px 12px rgba(168, 199, 250, 0.25);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -176,11 +179,23 @@
 
 /* Keyframes for animations */
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes scaleIn {
-  from { transform: scale(0.9); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
+  from {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
