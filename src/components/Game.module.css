@@ -2,67 +2,185 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  background: #3a5783;
+  background: linear-gradient(135deg, var(--md-surface-container-lowest) 0%, var(--md-surface) 100%);
   align-items: center;
   min-height: 100vh;
+  padding: 40px 20px;
 }
 
+/* Unified Material You Pill Container Header */
 .header {
-  margin: 10px;
-  color: white;
+  margin: 0 auto 32px auto;
+  background: var(--md-surface-container-high);
+  color: var(--md-on-surface);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  display: inline-flex; /* dynamically fits contents */
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  font-family: var(--font-family);
+  padding: 10px 24px;
+  border-radius: 100px; /* Perfect pill capsule shape */
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2),
+              inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(10px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Moves Group */
+.movesGroup {
   display: flex;
-  gap: 20px;
+  align-items: center;
+  gap: 8px;
 }
 
-.gameInfo {
-  margin-left: 20px;
+.movesLabel {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  opacity: 0.7;
 }
 
+.movesValue {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--md-primary);
+}
+
+/* Vertical Divider inside Pill */
+.divider {
+  width: 1px;
+  height: 20px;
+  background-color: rgba(255, 255, 255, 0.16);
+  margin: 0 20px;
+}
+
+/* Objectives Group and Items */
+.objectivesGroup {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.objectiveItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Satisfied state (completed goals) */
+.objectiveItem[data-completed="true"] {
+  opacity: 0.45;
+  transform: scale(0.9);
+}
+
+.objectiveDot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.objectiveWater {
+  width: 14px;
+  height: 14px;
+  background-color: #38bdf8;
+  border-radius: 4px;
+  box-shadow: inset 0 -1px 2px rgba(0, 0, 0, 0.2), 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.objectiveText {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.objectiveValue {
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+/* Game Over and Modal */
 .gameOverOverlay {
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(11, 13, 16, 0.8);
+  backdrop-filter: blur(12px);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
+  animation: fadeIn 0.3s ease-out;
 }
 
 .gameOverModal {
-  background: white;
+  background: var(--md-surface-container-high);
+  color: var(--md-on-surface);
   padding: 40px;
-  border-radius: 12px;
+  border-radius: 28px;
   text-align: center;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5),
+              inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  max-width: 90vw;
+  width: 320px;
+  transform: scale(1);
+  animation: scaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .victoryText {
-  color: #2cac75;
+  color: #4ade80;
   margin-top: 0;
-  font-size: 2.5rem;
+  font-size: 2.2rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
 }
 
 .defeatText {
-  color: #e84d60;
+  color: #f87171;
   margin-top: 0;
-  font-size: 2.5rem;
+  font-size: 2.2rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
 }
 
 .replayButton {
-  margin-top: 20px;
-  padding: 12px 24px;
-  font-size: 1.2rem;
-  background-color: #3a5783;
-  color: white;
+  margin-top: 24px;
+  width: 100%;
+  padding: 14px 28px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  font-family: var(--font-family);
+  background-color: var(--md-primary);
+  color: var(--md-on-primary);
   border: none;
-  border-radius: 8px;
+  border-radius: 24px; /* Pill button styling */
   cursor: pointer;
-  transition: background-color 0.2s;
+  box-shadow: 0 4px 12px rgba(168, 199, 250, 0.25);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .replayButton:hover {
-  background-color: #2a4060;
+  background-color: #c2dbff;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(168, 199, 250, 0.35);
+}
+
+.replayButton:active {
+  transform: translateY(0);
+}
+
+/* Keyframes for animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
 }

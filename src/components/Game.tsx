@@ -1,13 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import PengineClient from '../services/PengineClient';
 import Board from './Board';
 import { delay } from './util';
 import styles from './Game.module.css';
-import { CellContent, Grid, Objectives, EffectTerm, EffectInfoTerm } from './model';
+import { CellContent, Grid, Objectives, EffectTerm, EffectInfoTerm, colors, colorToCss } from './model';
 import { useHistory } from './helpers';
 
 function Game() {
   // State
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [pengine, setPengine] = useState<any>(null);
   const [grid, setGrid] = useState<Grid | null>(null);
   const [numOfColumns, setNumOfColumns] = useState<number | null>(null);
@@ -18,27 +19,10 @@ function Game() {
   //este history no tocar tuto quema, es el coso para ver que hicimos en el pasado, no es el historial de movimientos, es el historial de estados del juego, para poder mostrar la animacion de los efectos, cada vez que se hace un movimiento se guarda el estado del juego antes de hacer el movimiento, y se muestra ese estado mientras se muestra la animacion de los efectos, y cuando termina la animacion se muestra el estado actual del juego
   const { grid: historyGrid, objectives: historyObjectives } = useHistory({ grid: grid!, objectives, waiting });
 
-  useEffect(() => {
-    // Esto se ejecuta solo una vez, después del primer renderizado.
-    connectToPenginesServer();
-  }, []);
-
-  async function connectToPenginesServer() {
-    setPengine(await PengineClient.create()); // Espera hasta que se inicialice el servidor
-
-  }
-
-  useEffect(() => {
-    if (pengine) {
-      // Esto se ejecuta después de que pengine se haya establecido
-      initGame();
-    }
-  }, [pengine]);
-
-
-  async function initGame() {
+  const initGame = useCallback(async () => {
+    if (!pengine) return;
     const queryS = 'init(Grid, NumOfColumns, Goals, Moves)';
-    const response = await pengine!.query(queryS);
+    const response = await pengine.query(queryS);
     setGrid(response['Grid']);
     setNumOfColumns(response['NumOfColumns']);
     setMoves(response['Moves']);
@@ -47,7 +31,23 @@ function Game() {
       objectives[block] = value;
     });
     setObjectives(objectives);
-  }
+  }, [pengine]);
+
+  useEffect(() => {
+    // Esto se ejecuta solo una vez, después del primer renderizado.
+    async function connectToPenginesServer() {
+      setPengine(await PengineClient.create()); // Espera hasta que se inicialice el servidor
+    }
+    connectToPenginesServer();
+  }, []);
+
+  useEffect(() => {
+    if (pengine) {
+      // Esto se ejecuta después de que pengine se haya establecido
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      initGame();
+    }
+  }, [pengine, initGame]);
 
   /**
    * Llamado mientras el usuario está dibujando un camino en la cuadrícula, cada vez que el camino cambia.
@@ -152,13 +152,34 @@ function Game() {
   const showGameOver = !isAnimating && (isVictory || isDefeat);
 
   return (
-    <div className={styles.game}>
+    <div className={styles.game} style={{ '--num-columns': numOfColumns } as React.CSSProperties}>
       <div className={styles.header}>
-        <div>
-          {`Moves ${moves}`}
+        <div className={styles.movesGroup}>
+          <span className={styles.movesLabel}>MOVES</span>
+          <strong className={styles.movesValue}>{moves}</strong>
         </div>
-        <div>
-          {Object.entries(historyObjectives ?? objectives).map(([key, value]) => `${key} ${value}`).join(' | ')}
+        
+        <div className={styles.divider} />
+        
+        <div className={styles.objectivesGroup}>
+          {Object.entries(historyObjectives ?? objectives).map(([key, value]) => {
+            const isCol = colors.includes(key);
+            return (
+              <div key={key} className={styles.objectiveItem} data-completed={Number(value) <= 0}>
+                {isCol ? (
+                  <div
+                    className={styles.objectiveDot}
+                    style={{ backgroundColor: colorToCss(key as CellContent) }}
+                  />
+                ) : key === '~' ? (
+                  <div className={styles.objectiveWater} />
+                ) : (
+                  <span className={styles.objectiveText}>{key}</span>
+                )}
+                <span className={styles.objectiveValue}>{value}</span>
+              </div>
+            );
+          })}
         </div>
       </div>
       <Board
