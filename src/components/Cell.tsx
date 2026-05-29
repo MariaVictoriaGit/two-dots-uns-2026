@@ -27,15 +27,15 @@ function Cell({ value, onMouseEnter, onMouseDown, waterNeighbors }: CellProps) {
                     "--br-radius": (!bottom && !right) ? "50%" : "0px",
                     "--bl-radius": (!bottom && !left) ? "50%" : "0px",
                 } as React.CSSProperties;
-                return <div className={styles.water} style={style} key={i} />;
+                return <div className={styles.water} style={style} key="water" />;
             }
-            case "-": return <div className={styles.empty} key={i} />;
+            case "-": return <div className={styles.empty} key="empty" />;
             default: return (
                 <button
                     className={styles.color}
                     onMouseDown={onMouseDown}
                     onMouseEnter={onMouseEnter}
-                    key={i}
+                    key={cellContent}
                 >
                     <div style={{ backgroundColor: colorToCss(cellContent) }} />
                 </button>
