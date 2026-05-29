@@ -12,6 +12,21 @@
     border-top-right-radius: var(--tr-radius, 0px);
     border-bottom-right-radius: var(--br-radius, 0px);
     border-bottom-left-radius: var(--bl-radius, 0px);
+   /* Animación de fluido: rápida al inicio, frena suavemente al final */
+    animation: waterExpand 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+    transform-origin: center;
+}
+@keyframes waterExpand {
+    0% {
+        transform: scale(0.2);
+        opacity: 0;
+        border-radius: 50%; /* Nace como una gota redonda */
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+        /* Al llegar al 100% retoma los border-radius definidos por tus variables */
+    }
 }
 
 .empty {
@@ -37,4 +52,28 @@
     position: relative;
     overflow: visible;
     flex-grow: 1;
+
+    /* Animación de caída con gravedad para las fichas de color */
+    animation: circleFall 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+@keyframes circleFall {
+    0% {
+        transform: translateY(-80%); /* Empieza más arriba de su posición */
+        opacity: 0;
+    }
+    50% {
+        transform: translateY(0%); /* Toca el piso */
+        opacity: 1;
+    }
+    70% {
+        transform: translateY(-15%); /* Rebota un poco hacia arriba */
+    }
+    85% {
+        transform: translateY(0%); /* Vuelve a caer */
+    }
+    100% {
+        transform: translateY(0%); /* Se estabiliza por completo */
+        opacity: 1;
+    }
 }

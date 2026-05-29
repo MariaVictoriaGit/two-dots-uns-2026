@@ -71,6 +71,7 @@ connect(Grid, NumOfColumns, Path, Effects) :- % motor de todo el manejo de la ju
 
     % 4. Explosión y Gravedad Final
     % (Si hay bombas en la grilla, explotan y vuelve a actuar la gravedad)
+    %aca deberia cargar el path de todos los elimininados por la bomba, para luego aplicarles expandir agua si lo requieren y contar el agua y lo colores logrados por la bomba
     explosionar_bombas(GridPostGravedad1, NumOfColumns, GridPostExplosion, HuboExplosion, AchievedBombas),
     (HuboExplosion == true ->
         gravedad(GridPostExplosion, NumOfColumns, GridFinal),
@@ -206,11 +207,11 @@ es_cerrado([_|Resto]) :-
 % Encontrar posiciones de bombas usando Flood Fill desde los bordes
 encontrar_posiciones_bombas(Path, NumOfColumns, TotalCells, IndicesBombas) :-
     bordes_grilla(TotalCells, NumOfColumns, Bordes),
-    % Filtramos los bordes que no son parte del camino (por ahí entra el agua)
-    exclude(pertenece_a(Path), Bordes, BordesLibres),
-    % Hacemos la inundación (flood fill)
+    
+    % Le "restamos" a los Bordes todos los puntos que estén en el Path
+    subtract(Bordes, Path, BordesLibres),
+   
     inundar(BordesLibres, Path, NumOfColumns, TotalCells, [], Exterior),
-    % Las bombas son los puntos que no están ni en el camino ni en el exterior
     MaxI is TotalCells - 1,
     findall(I, (
         between(0, MaxI, I),
@@ -218,8 +219,8 @@ encontrar_posiciones_bombas(Path, NumOfColumns, TotalCells, IndicesBombas) :-
         \+ member(I, Exterior)
     ), IndicesBombas).
 
-% Helper genérico
-pertenece_a(Lista, Elemento) :- member(Elemento, Lista).
+
+
 
 % Encontrar todas las posiciones de los bordes de la grilla sin duplicados
 bordes_grilla(TotalCells, NumOfColumns, BordesUnicos) :-
@@ -366,15 +367,35 @@ encontrar_indices_color(Grid, Color, Indices) :-
     findall(I, (nth0(I, Grid, Celda), Celda = [Color|_]), Indices).
 
 expandir_agua_desde_colores_eliminados(Grid, Color, NumOfColumns, IndicesAExpandir) :-
-    encontrar_indices_color(Grid, Color, IndicesColor),
-    findall(I, (
-        member(I, IndicesColor),
-        (   
-            % El punto tiene agua adyacente
+     encontrar_indices_color(Grid, Color, IndicesColor),
+
+    findall(I,
+        (
+            member(I, IndicesColor),
             adyacente(I, V, NumOfColumns, Grid),
             celda_tiene_agua(Grid, V)
-        )
-    ), IndicesAExpandir).
+        ),
+        Iniciales
+    ),
+    expandir_agua_por_color(Grid, NumOfColumns,Iniciales,IndicesAExpandir).
+
+% expandir_agua_por_color(+Grid, +NumOfColumns, +Iniciales, -Resultado)
+expandir_agua_por_color(Grid, NumOfColumns, Iniciales, Resultado) :-
+    expandir_agua_por_color_rec(Iniciales, Grid, NumOfColumns, Iniciales, ResultadoUnico),
+    sort(ResultadoUnico, Resultado).
+
+expandir_agua_por_color_rec([], _, _, Visitados, Visitados).
+expandir_agua_por_color_rec([Act|Resto], Grid, NumOfColumns, Visitados, Resultado) :-
+    color_en(Grid, Act, ColorAct),
+    findall(Vecino, (
+        adyacente(Act, Vecino, NumOfColumns, Grid),
+        color_en(Grid, Vecino, ColorVecino),
+        ColorAct == ColorVecino,           % Verifica que sea del mismo color
+        \+ member(Vecino, Visitados)       % Evita ciclos
+    ), NuevosVecinos),
+    append(Resto, NuevosVecinos, NuevaCola),
+    append(Visitados, NuevosVecinos, NuevosVisitados),
+    expandir_agua_por_color_rec(NuevaCola, Grid, NumOfColumns, NuevosVisitados, Resultado).
 
 % ---------------Expansión Agua-------------------
 expandir_agua_en_jugada(Grid, Path, NumOfColumns, Resultado) :-
@@ -384,13 +405,12 @@ expandir_agua_en_jugada(Grid, Path, NumOfColumns, Resultado) :-
         % ...ya tenga agua él mismo
         celda_tiene_agua(Grid, P) 
     ;   
-        % ...o tenga un vecino V (usando tu adyacente) que tenga agua
+        % ...o tenga un vecino V que tenga agua
         adyacente(P, V, NumOfColumns, Grid),
         celda_tiene_agua(Grid, V)
     ), 
     !,
-    Resultado = Path, % Si encontramos al menos uno, el agua se expande a TODO el Path
-    writeln('Contacto con agua detectado. Expandiendo al camino seleccionado.').
+    Resultado = Path.
 
 % Si no se cumple lo de arriba, devolvemos lista vacía (no se moja nada nuevo)
 expandir_agua_en_jugada(_, _, _, []).
@@ -401,32 +421,29 @@ celda_tiene_agua(Grid, Idx) :-
 
 % --------aplicamos el agua a la grilla-----------
 aplicar_agua_a_grilla(Grid, IndicesADarAgua, NewGrid, Nuevos) :-
-    aplicar_agua_rec(Grid, IndicesADarAgua, 0, NewGrid, Nuevos).
-
-% Caso base: cuando terminamos de recorrer la grilla
-aplicar_agua_rec([], _, _, [], []).
-% Caso recursivo: procesamos cada celda una por una
-aplicar_agua_rec([CeldaOriginal|RestoGrid], Indices, I, [NuevaCelda|RestoNew], Nuevos) :-
-    (   member(I, Indices) -> % los indices son los que afecta el agua
-        % SI el índice actual I está en la lista para mojar:
-        (   member(~, CeldaOriginal) -> 
-            % Si ya tenía agua (ej: [r, ~]), la dejamos igual
-            NuevaCelda = CeldaOriginal, 
-            Nuevos = RestoNuevos
-        ;   
-            % Si no tenía (ej: [r]), le agregamos el agua al final -> [r, ~]
-            append(CeldaOriginal, [~], NuevaCelda),
-            Nuevos = [I|RestoNuevos], %guardamos el indice de los nuevos que se mojaron para el logro,
-            writeln('nuevos'), writeln(Nuevos)
-        )
-    ;   
-        % SINO: la celda queda exactamente como estaba
-        NuevaCelda = CeldaOriginal,
+    aplicar_agua_rec(Grid, IndicesADarAgua, NewGrid, Nuevos).
+% Caso base
+aplicar_agua_rec(Grid, [], Grid, []).
+% Caso recursivo
+aplicar_agua_rec(Grid, [Idx|RestoIdx], NewGrid, Nuevos) :-
+    
+    % 1. EXTRACCIÓN: Sacamos la celda vieja y nos guardamos la grilla sin el idx
+    nth0(Idx, Grid, CeldaOriginal, GridSinIdx),
+    
+    % 2. MODIFICACIÓN: Evaluamos qué hacer con esa celda
+    ( member(~, CeldaOriginal) -> 
+        CeldaNueva = CeldaOriginal,
         Nuevos = RestoNuevos
+    ; 
+        append(CeldaOriginal, [~], CeldaNueva),
+        Nuevos = [Idx|RestoNuevos]
     ),
-    % Seguimos con el siguiente índice
-    NextI is I + 1,
-    aplicar_agua_rec(RestoGrid, Indices, NextI, RestoNew, RestoNuevos).
+    % 3. INSERCIÓN: Usamos el mismo nth0, pero "al revés", para tapar remplazar el idx por el nuevo 
+    nth0(Idx, TempGrid, CeldaNueva, GridSinIdx),
+    
+    % 4. RECURSIÓN: Pasamos al siguiente índice
+    aplicar_agua_rec(TempGrid, RestoIdx, NewGrid, RestoNuevos).
+
 
 %----------GRAVEDAD-----------------
 

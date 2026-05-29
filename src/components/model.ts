@@ -7,7 +7,7 @@ export function colorToCss(color: typeof colors[number]): string {
         case "r": return "#e84d60";
         case "c": return "#7bbdc9";
         case "g": return "#2cac75";
-        case "p": return "#a4547d";
+        case "p": return "#a94ede";
         case "y": return "#fecd6c";
         case "b": return "#000000";
         default: return "white";
