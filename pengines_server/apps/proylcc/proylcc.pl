@@ -46,7 +46,7 @@ connect(Grid, NumOfColumns, Path, Effects) :- % motor de todo el manejo de la ju
             append(IndicesAgua1, IndicesAgua2, IndicesAgua),
             aplicar_agua_a_grilla(Grid, IndicesAgua, GridConAgua, _),
             eliminar_colores(GridConAgua, Color, GridSinColores),
-            colocar_bombas_en_grid(GridSinColores, IndicesBombas, 0, GridPreGravedad)
+            colocar_bombas_en_grid(GridSinColores, IndicesBombas, GridPreGravedad)
         ;
             % CASO CERRADO NORMAL: Expande agua desde el path y desde adyacentes al color
             expandir_agua_en_jugada(Grid, Path, NumOfColumns, IndicesAgua1),
@@ -167,10 +167,8 @@ remover_color(Celda, [~]) :-
 remover_color(_, []).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%-------------------------------------------------------------------------   BOMBA ----------------------------------------------
+%-------------------------------------------------------------------------   BOMBA -----------------------------------------------------------------------------
 es_cerrado(Path) :-
     length(Path, Len),
     Len > 2,
@@ -200,8 +198,6 @@ encontrar_posiciones_bombas(Path, NumOfColumns, TotalCells, IndicesBombas) :-
         \+ member(I, Path),
         \+ member(I, Exterior)
     ), IndicesBombas).
-
-
 
 
 % Encontrar todas las posiciones de los bordes de la grilla sin duplicados
@@ -253,17 +249,20 @@ vecinos_ortogonales(I, NumOfColumns, TotalCells, Vecinos) :-
         (V is I - 1, Col > 0) ; % Izquierda
         (V is I + 1, Col < NumOfColumns - 1) % Derecha
     ), Vecinos).
+%Gemini me dice que se puede refactorizar usando el adyacente ya usado, pero tenes que fijarte que hay que mandarle una grillo no una TotalCells 
+%lo que implica modificar el resto
+/*vecinos_ortogonales(I, NumOfColumns, Grid, Vecinos) :-
+    findall(V, adyacente(I, V, NumOfColumns, Grid), Vecinos).*/
 
 % Coloca las bombas respetando el agua si la hubiera
-colocar_bombas_en_grid([], _, _, []).
-colocar_bombas_en_grid([Celda|Resto], IndicesBombas, I, [NuevaCelda|RestoNew]) :-
-    (   member(I, IndicesBombas) ->
-        (member(~, Celda) -> NuevaCelda = [b, ~] ; NuevaCelda = [b])
-    ;   
-        NuevaCelda = Celda
-    ),
-    NextI is I + 1,
-    colocar_bombas_en_grid(Resto, IndicesBombas, NextI, RestoNew).
+colocar_bombas_en_grid(Grid, [], Grid).
+colocar_bombas_en_grid(Grid, [Idx|RestoIdx], NewGrid) :-
+    nth0(Idx, Grid, CeldaOriginal, GridSinIdx),
+    
+    ( member(~, CeldaOriginal) -> CeldaNueva = [b, ~] ; CeldaNueva = [b] ),
+    
+    nth0(Idx, TempGrid, CeldaNueva, GridSinIdx),
+    colocar_bombas_en_grid(TempGrid, RestoIdx, NewGrid).
 
 adyacente_bomba(X, Y, NumOfColumns, Grid) :-
     length(Grid, Len),
@@ -297,7 +296,7 @@ explosionar_bombas(Grid, NumOfColumns, GridFinal, HuboExplosion, AchievedBombas)
         
         contar_colores_destruidos(Grid, IndicesAEliminar, AchievedBombas),
         
-        eliminar_indices(Grid, IndicesAEliminar, 0, GridFinal)
+        eliminar_path(Grid, IndicesAEliminar, GridFinal)
     ;   
         HuboExplosion = false,
         GridFinal = Grid,
@@ -325,15 +324,7 @@ actualizar_frecuencia(C, [[C1, N1]|T], [[C1, N1]|T2]) :-
     actualizar_frecuencia(C, T, T2).
 
 % Elimina las celdas usando remover_color/2 para no romper la lógica de agua/obstáculos
-eliminar_indices([], _, _, []).
-eliminar_indices([Celda|Resto], Indices, I, [NuevaCelda|RestoNew]) :-
-    (   member(I, Indices) ->
-        remover_color(Celda, NuevaCelda)
-    ;   
-        NuevaCelda = Celda
-    ),
-    NextI is I + 1,
-    eliminar_indices(Resto, Indices, NextI, RestoNew).
+
 
 eliminar_colores([], _, []).
 eliminar_colores([Celda|Resto], Color, [NuevaCelda|RestoNew]) :-
@@ -345,7 +336,7 @@ eliminar_colores([Celda|Resto], Color, [NuevaCelda|RestoNew]) :-
     eliminar_colores(Resto, Color, RestoNew).
 
 
-%------------------------------------------------------------------------     AGUA      ---------------------------------------------------------------------
+%--------------------------------------------------------------------------------------------     AGUA      ---------------------------------------------------------------------
 % Encuentra índices adyacentes a agua de los puntos donde estaba ese color
 encontrar_indices_color(Grid, Color, Indices) :-
     findall(I, (nth0(I, Grid, Celda), Celda = [Color|_]), Indices).
@@ -382,13 +373,13 @@ expandir_agua_por_color_rec([Act|Resto], Grid, NumOfColumns, Visitados, Resultad
 
 % ---------------Expansión Agua-------------------
 expandir_agua_en_jugada(Grid, Path, NumOfColumns, Resultado) :-
-    % CONDICIÓN: Buscamos si existe un punto P en el camino que...
+    % Buscamos si existe un punto P en el camino que..
     member(P, Path), 
     (   
-        % ...ya tenga agua él mismo
+        % ya tenga agua él mismo
         celda_tiene_agua(Grid, P) 
     ;   
-        % ...o tenga un vecino V que tenga agua
+        % o tenga un vecino V que tenga agua
         adyacente(P, V, NumOfColumns, Grid),
         celda_tiene_agua(Grid, V)
     ), 
@@ -409,10 +400,9 @@ aplicar_agua_a_grilla(Grid, IndicesADarAgua, NewGrid, Nuevos) :-
 aplicar_agua_rec(Grid, [], Grid, []).
 % Caso recursivo
 aplicar_agua_rec(Grid, [Idx|RestoIdx], NewGrid, Nuevos) :-
-    % 1. EXTRACCIÓN: Sacamos la celda vieja y nos guardamos la grilla sin el idx
+    % Sacamos la celda vieja y nos guardamos la grilla sin el idx
     nth0(Idx, Grid, CeldaOriginal, GridSinIdx),
     
-    % 2. MODIFICACIÓN: Evaluamos qué hacer con esa celda
     ( member(~, CeldaOriginal) -> 
         CeldaNueva = CeldaOriginal,
         Nuevos = RestoNuevos
@@ -420,13 +410,13 @@ aplicar_agua_rec(Grid, [Idx|RestoIdx], NewGrid, Nuevos) :-
         append(CeldaOriginal, [~], CeldaNueva),
         Nuevos = [Idx|RestoNuevos]
     ),
-    % 3. INSERCIÓN: Usamos el mismo nth0, pero "al revés", para tapar remplazar el idx por el nuevo 
+    % Usamos el mismo nth0, pero "al revés", para tapar remplazar el idx por el nuevo 
     nth0(Idx, TempGrid, CeldaNueva, GridSinIdx),
     
-    % 4. RECURSIÓN: Pasamos al siguiente índice
     aplicar_agua_rec(TempGrid, RestoIdx, NewGrid, RestoNuevos).
 
-%----------GRAVEDAD-----------------
+
+%---------------------------------------------------------------------------------        GRAVEDAD     -----------------------------------------------------------------------------
 
 %------------ pasamos de la grilla plana a filas y columnas para facilitar la manipulacion de la gravedad -----------
 grilla_filas([], _, []).
