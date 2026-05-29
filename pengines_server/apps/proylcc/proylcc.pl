@@ -152,32 +152,16 @@ esta_elemento(E, Lista, X) :-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % ELIMINACIÓN
+%caso base
+eliminar_path(Grid, [], Grid).
 
-eliminar_path(Grid, Path, NewGrid):-
-    eliminar_path_rec(Grid, Path, 0, NewGrid).
+% Caso recursivo: Tomamos el primer índice del camino (Idx)
+eliminar_path(Grid, [Idx|RestoPath], NewGrid) :-
+    nth0(Idx, Grid, CeldaVieja, GridSinIdx),
+    remover_color(CeldaVieja, CeldaNueva),
+    nth0(Idx, TempGrid, CeldaNueva, GridSinIdx),
+    eliminar_path(TempGrid, RestoPath, NewGrid).
 
-eliminar_path_rec([], _, _, []).
-eliminar_path_rec([Celda|Resto], Path, Indice, [NewCelda|NewResto]):-
-    procesar_celda(Indice, Path, Celda, NewCelda),
-    NextIndice is Indice + 1,
-    eliminar_path_rec(Resto, Path, NextIndice, NewResto).
-
-
-/* procesar_celda(Indice, Path, Celda, NewCelda):-
-    (
-        member(Indice, Path),
-        remover_color(Celda, NewCelda)
-    );
-    (
-        \+member(Indice, Path),
-        NewCelda = Celda
-    ).*/
-
-procesar_celda(Indice, Path, Celda, NewCelda) :-
-    member(Indice, Path), !,
-    remover_color(Celda, NewCelda).
-
-procesar_celda(_, _, Celda, Celda).
 
 remover_color([-], [-]) :- !.
 remover_color(Celda, [~]) :- 
@@ -426,7 +410,6 @@ aplicar_agua_a_grilla(Grid, IndicesADarAgua, NewGrid, Nuevos) :-
 aplicar_agua_rec(Grid, [], Grid, []).
 % Caso recursivo
 aplicar_agua_rec(Grid, [Idx|RestoIdx], NewGrid, Nuevos) :-
-    
     % 1. EXTRACCIÓN: Sacamos la celda vieja y nos guardamos la grilla sin el idx
     nth0(Idx, Grid, CeldaOriginal, GridSinIdx),
     
@@ -443,6 +426,28 @@ aplicar_agua_rec(Grid, [Idx|RestoIdx], NewGrid, Nuevos) :-
     
     % 4. RECURSIÓN: Pasamos al siguiente índice
     aplicar_agua_rec(TempGrid, RestoIdx, NewGrid, RestoNuevos).
+
+aplicar_agua_rec([CeldaOriginal|RestoGrid], Indices, I, [NuevaCelda|RestoNew], Nuevos) :-
+    (   member(I, Indices) -> % los indices son los que afecta el agua
+        % SI el índice actual I está en la lista para mojar:
+        (   member(~, CeldaOriginal) ->
+            % Si ya tenía agua (ej: [r, ~]), la dejamos igual
+            NuevaCelda = CeldaOriginal,
+            Nuevos = RestoNuevos
+        ;  
+            % Si no tenía (ej: [r]), le agregamos el agua al final -> [r, ~]
+            append(CeldaOriginal, [~], NuevaCelda),
+            Nuevos = [I|RestoNuevos], %guardamos el indice de los nuevos que se mojaron para el logro,
+            writeln('nuevos'), writeln(Nuevos)
+        )
+    ;  
+        % SINO: la celda queda exactamente como estaba
+        NuevaCelda = CeldaOriginal,
+        Nuevos = RestoNuevos
+    ),
+    % Seguimos con el siguiente índice
+    NextI is I + 1,
+    aplicar_agua_rec(RestoGrid, Indices, NextI, RestoNew, RestoNuevos). 
 
 
 %----------GRAVEDAD-----------------
