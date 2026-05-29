@@ -142,9 +142,7 @@ mismo_color(Grid, [X|Z], Color, Cantidad):-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % ACCESOS
-/* ver si buscamos en un lugar válido e instanciamos el elemento
-var(N)       no tiene valor
-nonvar(N)    tiene valor */
+
 esta_elemento(E, Lista, X) :-
     E >= 0,
     nth0(E, Lista, X).
@@ -172,7 +170,7 @@ remover_color(_, []).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%-----bomba-------------------
+%-------------------------------------------------------------------------   BOMBA ----------------------------------------------
 es_cerrado(Path) :-
     length(Path, Len),
     Len > 2,
@@ -346,13 +344,14 @@ eliminar_colores([Celda|Resto], Color, [NuevaCelda|RestoNew]) :-
     ),
     eliminar_colores(Resto, Color, RestoNew).
 
+
+%------------------------------------------------------------------------     AGUA      ---------------------------------------------------------------------
 % Encuentra índices adyacentes a agua de los puntos donde estaba ese color
 encontrar_indices_color(Grid, Color, Indices) :-
     findall(I, (nth0(I, Grid, Celda), Celda = [Color|_]), Indices).
 
 expandir_agua_desde_colores_eliminados(Grid, Color, NumOfColumns, IndicesAExpandir) :-
      encontrar_indices_color(Grid, Color, IndicesColor),
-
     findall(I,
         (
             member(I, IndicesColor),
@@ -426,29 +425,6 @@ aplicar_agua_rec(Grid, [Idx|RestoIdx], NewGrid, Nuevos) :-
     
     % 4. RECURSIÓN: Pasamos al siguiente índice
     aplicar_agua_rec(TempGrid, RestoIdx, NewGrid, RestoNuevos).
-
-aplicar_agua_rec([CeldaOriginal|RestoGrid], Indices, I, [NuevaCelda|RestoNew], Nuevos) :-
-    (   member(I, Indices) -> % los indices son los que afecta el agua
-        % SI el índice actual I está en la lista para mojar:
-        (   member(~, CeldaOriginal) ->
-            % Si ya tenía agua (ej: [r, ~]), la dejamos igual
-            NuevaCelda = CeldaOriginal,
-            Nuevos = RestoNuevos
-        ;  
-            % Si no tenía (ej: [r]), le agregamos el agua al final -> [r, ~]
-            append(CeldaOriginal, [~], NuevaCelda),
-            Nuevos = [I|RestoNuevos], %guardamos el indice de los nuevos que se mojaron para el logro,
-            writeln('nuevos'), writeln(Nuevos)
-        )
-    ;  
-        % SINO: la celda queda exactamente como estaba
-        NuevaCelda = CeldaOriginal,
-        Nuevos = RestoNuevos
-    ),
-    % Seguimos con el siguiente índice
-    NextI is I + 1,
-    aplicar_agua_rec(RestoGrid, Indices, NextI, RestoNew, RestoNuevos). 
-
 
 %----------GRAVEDAD-----------------
 
