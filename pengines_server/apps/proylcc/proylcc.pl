@@ -284,25 +284,15 @@ explosionar_bombas(Grid, NumOfColumns, GridFinal, HuboExplosion, AchievedBombas)
         contar_colores_destruidos(Grid, IndicesAEliminar, AchievedBombasBase),
         
         % expansión de agua intentando economizar código 
-        % 1. Reutilizamos expandir_agua_en_jugada para mojar todos los índices destruidos 
+        % Reutilizamos expandir_agua_en_jugada para mojar todos los índices destruidos 
         % (si al menos uno toca agua)
-        expandir_agua_en_jugada(Grid, IndicesAEliminar, NumOfColumns, IndicesAguaBase),
+        expandir_agua_en_jugada(Grid, IndicesAEliminar, NumOfColumns, TodosLosAguaBruto),
         
-        % 2. De los que se mojaron, tomamos solo los que tienen color para la recursión
-        findall(I, (
-            member(I, IndicesAguaBase),
-            color_en(Grid, I, _)
-        ), InicialesColor),
-        
-        % 3. Reusamos expandir_agua_por_color para la expansión recursiva
-        expandir_agua_por_color(Grid, NumOfColumns, InicialesColor, IndicesAguaRecursiva),
-        
-        % 4. Juntamos y aplicamos el agua
-        append(IndicesAguaBase, IndicesAguaRecursiva, TodosLosAguaBruto),
+        % Juntamos y aplicamos el agua
         sort(TodosLosAguaBruto, TodosLosAgua),
         aplicar_agua_a_grilla(Grid, TodosLosAgua, GridConAgua, NuevosAguaBomba),
         
-        % 5. Contamos el agua nueva y la agregamos a los objetivos cumplidos
+        % Contamos el agua nueva y la agregamos a los objetivos cumplidos
         length(NuevosAguaBomba, CantidadAguaBomba),
         (CantidadAguaBomba > 0 ->
             append(AchievedBombasBase, [[~, CantidadAguaBomba]], AchievedBombas)
