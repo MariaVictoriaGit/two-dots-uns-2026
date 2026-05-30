@@ -196,16 +196,17 @@ function Game() {
       {showGameOver && (
         <div className={styles.gameOverOverlay}>
           <div className={styles.gameOverModal}>
-            <h1 className={isVictory ? styles.victoryText : styles.defeatText}>
-              {isVictory ? '¡Victoria!' : '¡Derrota!'}
-            </h1>
+            <div className={isVictory ? styles.victoryText : styles.defeatText}>
+              {isVictory ? '¡VICTORIA!' : '¡DERROTA!'}
+            </div>
+            
             <button className={styles.replayButton} onClick={() => {
               setGrid(null);
               setMoves(null);
               setObjectives({});
               initGame();
             }}>
-              Jugar de nuevo
+              JUGAR DE NUEVO
             </button>
           </div>
         </div>

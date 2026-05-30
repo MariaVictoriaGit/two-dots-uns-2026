@@ -33,35 +33,32 @@ connect(Grid, NumOfColumns, Path, Effects) :- % motor de todo el manejo de la ju
     mismo_color(Grid, Path, Color, Cantidad),
     length(Grid, TotalCells),
 
-    % Verificamo si es cerrado y luego bomba
+    % verificamo si es cerrado y luego bomba
     (es_cerrado(Path) ->
-        encontrar_indices_color(Grid, Color, IndicesColorTotal),
-        length(IndicesColorTotal, CantidadRealColor),
-        encontrar_posiciones_bombas(Path, NumOfColumns, TotalCells, IndicesBombas),
-        (IndicesBombas \= [] ->
-            % CASO BOMBA: Coloca bombas negras donde corresponde
-            expandir_agua_en_jugada(Grid, Path, NumOfColumns, IndicesAgua1),
-            aplicar_agua_a_grilla(Grid, IndicesAgua1, GridConAgua1, _),
-            expandir_agua_desde_colores_eliminados(GridConAgua1, Color, NumOfColumns, IndicesAgua2),
-            append(IndicesAgua1, IndicesAgua2, IndicesAgua),
-            aplicar_agua_a_grilla(Grid, IndicesAgua, GridConAgua, _),
-            eliminar_colores(GridConAgua, Color, GridSinColores),
-            colocar_bombas_en_grid(GridSinColores, IndicesBombas, GridPreGravedad)
-        ;
-            % CASO CERRADO NORMAL: Expande agua desde el path y desde adyacentes al color
-            expandir_agua_en_jugada(Grid, Path, NumOfColumns, IndicesAgua1),
-            aplicar_agua_a_grilla(Grid, IndicesAgua1, GridConAgua1, _),
-            expandir_agua_desde_colores_eliminados(GridConAgua1, Color, NumOfColumns, IndicesAgua2),
-            append(IndicesAgua1, IndicesAgua2, IndicesAgua),
-            aplicar_agua_a_grilla(Grid, IndicesAgua, GridConAgua, _),
-            eliminar_colores(GridConAgua, Color, GridPreGravedad)
-        )
-    ;   
-        % CASO NORMAL: Solo el camino
-        CantidadRealColor = Cantidad,
-        expandir_agua_en_jugada(Grid, Path, NumOfColumns, IndicesAgua),
-        aplicar_agua_a_grilla(Grid, IndicesAgua, GridConAgua, _),
-        eliminar_path(GridConAgua, Path, GridPreGravedad)
+encontrar_indices_color(Grid, Color, IndicesColorTotal),
+    length(IndicesColorTotal, CantidadRealColor),
+
+    % 1. factor común de las cosas que se hacen en todo camino cerrado, bomba o no.
+    expandir_agua_en_jugada(Grid, Path, NumOfColumns, IndicesAgua1),
+    aplicar_agua_a_grilla(Grid, IndicesAgua1, GridConAgua1, _),
+    expandir_agua_desde_colores_eliminados(GridConAgua1, Color, NumOfColumns, IndicesAgua2),
+    append(IndicesAgua1, IndicesAgua2, IndicesAgua),
+    aplicar_agua_a_grilla(Grid, IndicesAgua, GridConAgua, _),
+    eliminar_colores(GridConAgua, Color, GridSinColores),
+
+    % 2. condición excusiva de colocación de bombas 
+    encontrar_posiciones_bombas(Path, NumOfColumns, Grid, IndicesBombas),
+    (IndicesBombas \= [] ->
+        colocar_bombas_en_grid(GridSinColores, IndicesBombas, GridPreGravedad)
+    ;
+        GridPreGravedad = GridSinColores
+    )
+;   
+    % CASO NORMAL: Solo el camino
+    CantidadRealColor = Cantidad,
+    expandir_agua_en_jugada(Grid, Path, NumOfColumns, IndicesAgua),
+    aplicar_agua_a_grilla(Grid, IndicesAgua, GridConAgua, _),
+    eliminar_path(GridConAgua, Path, GridPreGravedad)
     ),
     aplicar_agua_a_grilla(Grid, IndicesAgua, _, NuevosAgua),
     length(NuevosAgua, CantidadAgua),
@@ -71,7 +68,7 @@ connect(Grid, NumOfColumns, Path, Effects) :- % motor de todo el manejo de la ju
 
     % 4. Explosión y Gravedad Final
     % (Si hay bombas en la grilla, explotan y vuelve a actuar la gravedad)
-    %aca deberia cargar el path de todos los elimininados por la bomba, para luego aplicarles expandir agua si lo requieren y contar el agua y lo colores logrados por la bomba
+    % aca deberia cargar el path de todos los elimininados por la bomba, para luego aplicarles expandir agua si lo requieren y contar el agua y lo colores logrados por la bomba
     explosionar_bombas(GridPostGravedad1, NumOfColumns, GridPostExplosion, HuboExplosion, AchievedBombas),
     (HuboExplosion == true ->
         gravedad(GridPostExplosion, NumOfColumns, GridFinal),
@@ -150,9 +147,8 @@ esta_elemento(E, Lista, X) :-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % ELIMINACIÓN
-%caso base
+% caso base
 eliminar_path(Grid, [], Grid).
-
 % Caso recursivo: Tomamos el primer índice del camino (Idx)
 eliminar_path(Grid, [Idx|RestoPath], NewGrid) :-
     nth0(Idx, Grid, CeldaVieja, GridSinIdx),
@@ -185,13 +181,14 @@ es_cerrado([_|Resto]) :-
         es_cerrado(XResto)).
 
 % Encontrar posiciones de bombas usando Flood Fill desde los bordes
-encontrar_posiciones_bombas(Path, NumOfColumns, TotalCells, IndicesBombas) :-
+encontrar_posiciones_bombas(Path, NumOfColumns, Grid, IndicesBombas) :-
+    length(Grid, TotalCells),
     bordes_grilla(TotalCells, NumOfColumns, Bordes),
     
     % Le "restamos" a los Bordes todos los puntos que estén en el Path
     subtract(Bordes, Path, BordesLibres),
    
-    inundar(BordesLibres, Path, NumOfColumns, TotalCells, [], Exterior),
+    inundar(BordesLibres, Path, NumOfColumns, Grid, [], Exterior),
     MaxI is TotalCells - 1,
     findall(I, (
         between(0, MaxI, I),
@@ -216,17 +213,17 @@ es_borde(I, NumOfColumns, _) :- I mod NumOfColumns =:= 0.
 es_borde(I, NumOfColumns, _) :- I mod NumOfColumns =:= NumOfColumns - 1.
 
 % Flood Fill (Inundación)
-% inundar(ToVisit, Path, NumOfColumns, TotalCells, Visited, FinalVisited)
+% inundar(ToVisit, Path, NumOfColumns, Grid, Visited, FinalVisited)
 inundar([], _, _, _, Visited, Visited).
-inundar([Act | RestoToVisit], Path, NumOfColumns, TotalCells, Visited, FinalVisited) :-
+inundar([Act | RestoToVisit], Path, NumOfColumns, Grid, Visited, FinalVisited) :-
     % Si el nodo actual ya fue visitado (por precaución), lo salteamos
     ( member(Act, Visited) ->
-        inundar(RestoToVisit, Path, NumOfColumns, TotalCells, Visited, FinalVisited)
+        inundar(RestoToVisit, Path, NumOfColumns, Grid, Visited, FinalVisited)
     ;
         % Agregamos Act a los visitados
         NuevoVisited = [Act | Visited],
         % Buscamos vecinos válidos (adentro de grilla, ortogonales)
-        vecinos_ortogonales(Act, NumOfColumns, TotalCells, Vecinos),
+        vecinos_ortogonales(Act, NumOfColumns, Grid, Vecinos),
         % Filtramos vecinos: que no estén en Path, no estén en NuevoVisited, no estén en RestoToVisit
         findall(V, (
             member(V, Vecinos),
@@ -237,22 +234,12 @@ inundar([Act | RestoToVisit], Path, NumOfColumns, TotalCells, Visited, FinalVisi
         % Agregamos los vecinos válidos a la cola de procesamiento
         append(RestoToVisit, VecinosValidos, NuevoToVisit),
         % Llamada recursiva
-        inundar(NuevoToVisit, Path, NumOfColumns, TotalCells, NuevoVisited, FinalVisited)
+        inundar(NuevoToVisit, Path, NumOfColumns, Grid, NuevoVisited, FinalVisited)
     ).
 
-% Vecinos ortogonales (arriba, abajo, izquierda, derecha) respetando los límites
-vecinos_ortogonales(I, NumOfColumns, TotalCells, Vecinos) :-
-    Col is I mod NumOfColumns,
-    findall(V, (
-        (V is I - NumOfColumns, V >= 0) ; % Arriba
-        (V is I + NumOfColumns, V < TotalCells) ; % Abajo
-        (V is I - 1, Col > 0) ; % Izquierda
-        (V is I + 1, Col < NumOfColumns - 1) % Derecha
-    ), Vecinos).
-%Gemini me dice que se puede refactorizar usando el adyacente ya usado, pero tenes que fijarte que hay que mandarle una grillo no una TotalCells 
-%lo que implica modificar el resto
-/*vecinos_ortogonales(I, NumOfColumns, Grid, Vecinos) :-
-    findall(V, adyacente(I, V, NumOfColumns, Grid), Vecinos).*/
+% Vecinos ortogonales usando el adyacente general
+vecinos_ortogonales(I, NumOfColumns, Grid, Vecinos) :-
+    findall(V, adyacente(I, V, NumOfColumns, Grid), Vecinos).
 
 % Coloca las bombas respetando el agua si la hubiera
 colocar_bombas_en_grid(Grid, [], Grid).
@@ -294,9 +281,36 @@ explosionar_bombas(Grid, NumOfColumns, GridFinal, HuboExplosion, AchievedBombas)
         append(IndicesBombas, IndicesAdyacentes, IndicesBrutos),
         sort(IndicesBrutos, IndicesAEliminar),
         
-        contar_colores_destruidos(Grid, IndicesAEliminar, AchievedBombas),
+        contar_colores_destruidos(Grid, IndicesAEliminar, AchievedBombasBase),
         
-        eliminar_path(Grid, IndicesAEliminar, GridFinal)
+        % expansión de agua intentando economizar código 
+        % 1. Reutilizamos expandir_agua_en_jugada para mojar todos los índices destruidos 
+        % (si al menos uno toca agua)
+        expandir_agua_en_jugada(Grid, IndicesAEliminar, NumOfColumns, IndicesAguaBase),
+        
+        % 2. De los que se mojaron, tomamos solo los que tienen color para la recursión
+        findall(I, (
+            member(I, IndicesAguaBase),
+            color_en(Grid, I, _)
+        ), InicialesColor),
+        
+        % 3. Reusamos expandir_agua_por_color para la expansión recursiva
+        expandir_agua_por_color(Grid, NumOfColumns, InicialesColor, IndicesAguaRecursiva),
+        
+        % 4. Juntamos y aplicamos el agua
+        append(IndicesAguaBase, IndicesAguaRecursiva, TodosLosAguaBruto),
+        sort(TodosLosAguaBruto, TodosLosAgua),
+        aplicar_agua_a_grilla(Grid, TodosLosAgua, GridConAgua, NuevosAguaBomba),
+        
+        % 5. Contamos el agua nueva y la agregamos a los objetivos cumplidos
+        length(NuevosAguaBomba, CantidadAguaBomba),
+        (CantidadAguaBomba > 0 ->
+            append(AchievedBombasBase, [[~, CantidadAguaBomba]], AchievedBombas)
+        ;
+            AchievedBombas = AchievedBombasBase
+        ),
+        
+        eliminar_path(GridConAgua, IndicesAEliminar, GridFinal)
     ;   
         HuboExplosion = false,
         GridFinal = Grid,
@@ -324,7 +338,6 @@ actualizar_frecuencia(C, [[C1, N1]|T], [[C1, N1]|T2]) :-
     actualizar_frecuencia(C, T, T2).
 
 % Elimina las celdas usando remover_color/2 para no romper la lógica de agua/obstáculos
-
 
 eliminar_colores([], _, []).
 eliminar_colores([Celda|Resto], Color, [NuevaCelda|RestoNew]) :-
