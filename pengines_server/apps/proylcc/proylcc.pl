@@ -34,16 +34,8 @@ connect(Grid, NumOfColumns, Path, Effects) :- % motor de todo el manejo de la ju
 
     % verificamo si es cerrado y luego bomba
     (es_cerrado(Path) ->
-        encontrar_indices_color(Grid, Color, IndicesColorTotal),
-        length(IndicesColorTotal, CantidadRealColor),
-
-        % 1. factor común de las cosas que se hacen en todo camino cerrado, bomba o no.
-        expandir_agua_en_jugada(Grid, Path, NumOfColumns, IndicesAgua1),
-        aplicar_agua_a_grilla(Grid, IndicesAgua1, GridConAgua1, _),
-        expandir_agua_desde_colores_eliminados(GridConAgua1, Color, NumOfColumns, IndicesAgua2),
-        append(IndicesAgua1, IndicesAgua2, IndicesAgua),
-        aplicar_agua_a_grilla(Grid, IndicesAgua, GridConAgua, _),
-        eliminar_colores(GridConAgua, Color, GridSinColores),
+        %1. En camino cerrado sea bomba o no se eliminan todas las fichas del mismo color.
+        eliminar_color(Grid, Path, NumOfColumns, Color, GridSinColores, CantidadRealColor,NuevosAgua),
 
         % 2. condición excusiva de colocación de bombas 
         encontrar_posiciones_bombas(Path, NumOfColumns, Grid, IndicesBombas),
@@ -53,14 +45,18 @@ connect(Grid, NumOfColumns, Path, Effects) :- % motor de todo el manejo de la ju
             GridPreGravedad = GridSinColores
         )
     ;   
-        % CASO NORMAL: Solo el camino
-        CantidadRealColor = Cantidad,
-        expandir_agua_en_jugada(Grid, Path, NumOfColumns, IndicesAgua),
-        aplicar_agua_a_grilla(Grid, IndicesAgua, GridConAgua, _),
-        eliminar_path(GridConAgua, Path, GridPreGravedad)
+        %En Two dots si se conectan 13 o mas puntos del mismo color, se elimina TODO ese color de la grilla
+        Cantidad >= 13 ->
+            eliminar_color(Grid, Path, NumOfColumns, Color, GridPreGravedad, CantidadRealColor, NuevosAgua)
+        ;
+            % CASO NORMAL: Solo el camino
+            CantidadRealColor = Cantidad,
+            expandir_agua_en_jugada(Grid, Path, NumOfColumns, IndicesAgua),
+            aplicar_agua_a_grilla(Grid, IndicesAgua, GridConAgua, NuevosAgua),
+            eliminar_path(GridConAgua, Path, GridPreGravedad)
+        
     ),
 
-    aplicar_agua_a_grilla(Grid, IndicesAgua, _, NuevosAgua),
     length(NuevosAgua, CantidadAgua),
 
    % 3. Gravedad Inicial (caen las fichas y se acomodan las bombas negras)
@@ -87,6 +83,18 @@ connect(Grid, NumOfColumns, Path, Effects) :- % motor de todo el manejo de la ju
     ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+eliminar_color(Grid, Path, NumOfColumns, Color, GridSinColores, CantidadRealColor,NuevosAgua) :-
+    encontrar_indices_color(Grid, Color, IndicesColorTotal),
+        length(IndicesColorTotal, CantidadRealColor),
+
+        % 1. factor común de las cosas que se hacen en todo camino cerrado, bomba o no.
+        expandir_agua_en_jugada(Grid, Path, NumOfColumns, IndicesAgua1),
+        aplicar_agua_a_grilla(Grid, IndicesAgua1, GridConAgua1, _),
+        expandir_agua_desde_colores_eliminados(GridConAgua1, Color, NumOfColumns, IndicesAgua2),
+        append(IndicesAgua1, IndicesAgua2, IndicesAgua),
+        aplicar_agua_a_grilla(Grid, IndicesAgua, GridConAgua, NuevosAgua),
+        eliminar_colores(GridConAgua, Color, GridSinColores).
+
 % VALIDAMOS LA JUGADA
 /* Lógica
 Grilla de puntos de colores conectables.
@@ -159,7 +167,7 @@ eliminar_path(Grid, [Idx|RestoPath], NewGrid) :-
 
 remover_color([-], [-]) :- !.
 remover_color(Celda, [~]) :- 
-    member(~, Celda), !.
+    tiene_agua(Celda), !.
 remover_color(_, []).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -249,7 +257,7 @@ colocar_bombas_en_grid(Grid, [Idx|RestoIdx], NewGrid) :-
     (es_obstaculo(CeldaOriginal) ->
         CeldaNueva = CeldaOriginal
     ;
-    member(~, CeldaOriginal) -> 
+    tiene_agua(CeldaOriginal) -> 
     CeldaNueva = [b, ~] 
     ; 
     CeldaNueva = [b] ),
@@ -406,7 +414,7 @@ expandir_agua_en_jugada(_, _, _, []).
 
 celda_tiene_agua(Grid, Idx) :- 
     nth0(Idx, Grid, Celda), %busca la selda Idx en la grilla
-    member(~, Celda). %se fija si la celda en el índice dado tiene agua
+    tiene_agua(Celda). %se fija si la celda en el índice dado tiene agua
 
 % --------aplicamos el agua a la grilla-----------
 aplicar_agua_a_grilla(Grid, IndicesADarAgua, NewGrid, Nuevos) :-
@@ -423,7 +431,7 @@ aplicar_agua_rec(Grid, [Idx|RestoIdx], NewGrid, Nuevos) :-
         CeldaNueva = CeldaOriginal,
         Nuevos = RestoNuevos
         ;
-        member(~, CeldaOriginal) -> 
+        tiene_agua(CeldaOriginal) -> 
         CeldaNueva = CeldaOriginal,
         Nuevos = RestoNuevos
     ; 
@@ -502,7 +510,7 @@ acomodar_con_obstaculos([C|RestoM], Fichas, [C|RestoR]) :-
 % Si hay agua, pone ficha + agua y consume una ficha
 acomodar_con_obstaculos([C|RestoM], [[Color]|RestoF], [[Color, ~]|RestoR]) :-
     (C = [~] ;
-        member(~, C)), !,
+        tiene_agua(C)), !,
     acomodar_con_obstaculos(RestoM, RestoF, RestoR).
 % Si es celda normal, pone ficha y consume una ficha
 acomodar_con_obstaculos([_|RestoM], [F|RestoF], [F|RestoR]) :-
@@ -521,5 +529,7 @@ tiene_color_real(Celda) :-
     Celda = [Color|_], 
     es_color(Color).
 
-es_agua([~]).
+
+tiene_agua(Celda) :- 
+    member(~, Celda).
 es_obstaculo([-]).
