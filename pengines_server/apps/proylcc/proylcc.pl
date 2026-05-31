@@ -31,35 +31,35 @@ connect(Grid, NumOfColumns, Path, Effects) :- % motor de todo el manejo de la ju
     % verificamos que el camino sea válido
     camino_valido(Path, NumOfColumns, Grid),
     mismo_color(Grid, Path, Color, Cantidad),
-    length(Grid, TotalCells),
 
     % verificamo si es cerrado y luego bomba
     (es_cerrado(Path) ->
-encontrar_indices_color(Grid, Color, IndicesColorTotal),
-    length(IndicesColorTotal, CantidadRealColor),
+        encontrar_indices_color(Grid, Color, IndicesColorTotal),
+        length(IndicesColorTotal, CantidadRealColor),
 
-    % 1. factor común de las cosas que se hacen en todo camino cerrado, bomba o no.
-    expandir_agua_en_jugada(Grid, Path, NumOfColumns, IndicesAgua1),
-    aplicar_agua_a_grilla(Grid, IndicesAgua1, GridConAgua1, _),
-    expandir_agua_desde_colores_eliminados(GridConAgua1, Color, NumOfColumns, IndicesAgua2),
-    append(IndicesAgua1, IndicesAgua2, IndicesAgua),
-    aplicar_agua_a_grilla(Grid, IndicesAgua, GridConAgua, _),
-    eliminar_colores(GridConAgua, Color, GridSinColores),
+        % 1. factor común de las cosas que se hacen en todo camino cerrado, bomba o no.
+        expandir_agua_en_jugada(Grid, Path, NumOfColumns, IndicesAgua1),
+        aplicar_agua_a_grilla(Grid, IndicesAgua1, GridConAgua1, _),
+        expandir_agua_desde_colores_eliminados(GridConAgua1, Color, NumOfColumns, IndicesAgua2),
+        append(IndicesAgua1, IndicesAgua2, IndicesAgua),
+        aplicar_agua_a_grilla(Grid, IndicesAgua, GridConAgua, _),
+        eliminar_colores(GridConAgua, Color, GridSinColores),
 
-    % 2. condición excusiva de colocación de bombas 
-    encontrar_posiciones_bombas(Path, NumOfColumns, Grid, IndicesBombas),
-    (IndicesBombas \= [] ->
-        colocar_bombas_en_grid(GridSinColores, IndicesBombas, GridPreGravedad)
-    ;
-        GridPreGravedad = GridSinColores
-    )
-;   
-    % CASO NORMAL: Solo el camino
-    CantidadRealColor = Cantidad,
-    expandir_agua_en_jugada(Grid, Path, NumOfColumns, IndicesAgua),
-    aplicar_agua_a_grilla(Grid, IndicesAgua, GridConAgua, _),
-    eliminar_path(GridConAgua, Path, GridPreGravedad)
+        % 2. condición excusiva de colocación de bombas 
+        encontrar_posiciones_bombas(Path, NumOfColumns, Grid, IndicesBombas),
+        (IndicesBombas \= [] ->
+            colocar_bombas_en_grid(GridSinColores, IndicesBombas, GridPreGravedad)
+        ;
+            GridPreGravedad = GridSinColores
+        )
+    ;   
+        % CASO NORMAL: Solo el camino
+        CantidadRealColor = Cantidad,
+        expandir_agua_en_jugada(Grid, Path, NumOfColumns, IndicesAgua),
+        aplicar_agua_a_grilla(Grid, IndicesAgua, GridConAgua, _),
+        eliminar_path(GridConAgua, Path, GridPreGravedad)
     ),
+
     aplicar_agua_a_grilla(Grid, IndicesAgua, _, NuevosAgua),
     length(NuevosAgua, CantidadAgua),
 
@@ -246,7 +246,13 @@ colocar_bombas_en_grid(Grid, [], Grid).
 colocar_bombas_en_grid(Grid, [Idx|RestoIdx], NewGrid) :-
     nth0(Idx, Grid, CeldaOriginal, GridSinIdx),
     
-    ( member(~, CeldaOriginal) -> CeldaNueva = [b, ~] ; CeldaNueva = [b] ),
+    (es_obstaculo(CeldaOriginal) ->
+        CeldaNueva = CeldaOriginal
+    ;
+    member(~, CeldaOriginal) -> 
+    CeldaNueva = [b, ~] 
+    ; 
+    CeldaNueva = [b] ),
     
     nth0(Idx, TempGrid, CeldaNueva, GridSinIdx),
     colocar_bombas_en_grid(TempGrid, RestoIdx, NewGrid).
@@ -279,8 +285,14 @@ explosionar_bombas(Grid, NumOfColumns, GridFinal, HuboExplosion, AchievedBombas)
         ), IndicesAdyacentes),
         % Juntamos bombas y adyacentes, y eliminamos duplicados con sort/2
         append(IndicesBombas, IndicesAdyacentes, IndicesBrutos),
-        sort(IndicesBrutos, IndicesAEliminar),
+        sort(IndicesBrutos, IndicesUnicos),
         
+        findall(I, (
+            member(I, IndicesUnicos),
+            nth0(I, Grid, Celda),
+            \+ es_obstaculo(Celda) % Si es obstáculo, lo ignoramos
+        ), IndicesAEliminar),
+
         contar_colores_destruidos(Grid, IndicesAEliminar, AchievedBombasBase),
         
         % expansión de agua intentando economizar código 
@@ -406,7 +418,12 @@ aplicar_agua_rec(Grid, [Idx|RestoIdx], NewGrid, Nuevos) :-
     % Sacamos la celda vieja y nos guardamos la grilla sin el idx
     nth0(Idx, Grid, CeldaOriginal, GridSinIdx),
     
-    ( member(~, CeldaOriginal) -> 
+    (es_obstaculo(CeldaOriginal) ->
+        % Si es un obstáculo, lo ignoramos por completo
+        CeldaNueva = CeldaOriginal,
+        Nuevos = RestoNuevos
+        ;
+        member(~, CeldaOriginal) -> 
         CeldaNueva = CeldaOriginal,
         Nuevos = RestoNuevos
     ; 
