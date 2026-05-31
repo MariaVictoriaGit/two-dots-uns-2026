@@ -55,7 +55,7 @@ La interacción entre React y Prolog se realiza a través del predicado `connect
 
 - Bombas:
 
-- Agua:
+- Agua: //podemos agregar que se implemento el predicado `tiene_agua/1` y `es_obstaculo/1`para una mayor extendibilidad el dia de mañana se quiera usar otro simbolo o forma de saber si es agua u obstaculo, solo se modifique el predicado y no toda la logica
 
 - Fin del juego: 
 
@@ -68,9 +68,11 @@ La interacción entre React y Prolog se realiza a través del predicado `connect
 
 ## Funcionalidades adicionales implementadas:
 - Vertices del agua
+- Al conectar 13 puntos o mas se acciona como en el juego eliminando todos los puntos de ese color
+- Bordes de color al conectar las formas, y fondo transparente colorido para cuando se eliminen todos los colores
 
 ## Desafíos:
-- Trabajo sobre las celdas y la distincion de la logica de trabajo tanto si trabajamos sobre la celda, como dentro de la misma. Esta fue una dificultadal incio del trabajo, ya que fue determinante a la hora de afrontar el resto de la logica de trabajo sobre la grilla. 
+- Trabajo sobre las celdas y la distincion de la logica de trabajo tanto si trabajamos sobre la celda, como dentro de la misma. Esta fue una dificultad al incio del trabajo, ya que fue determinante a la hora de afrontar el resto de la logica de trabajo sobre la grilla. 
 - Además de la gestión de indices
 - Partición en columnas/segmentos
 - La expancion del agua con la bomba
