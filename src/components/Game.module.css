@@ -213,7 +213,6 @@
 .borderLine {
   position: absolute;
   background-color: var(--path-color);
-  box-shadow: 0 0 15px var(--path-color), 0 0 5px var(--path-color);
   transition: width 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94), 
               height 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
