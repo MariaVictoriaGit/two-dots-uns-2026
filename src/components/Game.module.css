@@ -193,3 +193,49 @@
     opacity: 1;
   }
 }
+
+/* --- ANIMACIONES DE FEEDBACK MASIVO --- */
+
+/* Contenedor fantasma que cubre toda la pantalla del juego */
+.massiveOverlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none; /* Para que no bloquee los clics del mouse */
+  z-index: 1; /* Queda por encima del fondo azul, pero debajo de las bolitas */
+  transition: background-color 0.4s ease, opacity 0.4s ease;
+  opacity: 1;
+}
+
+/* Cuando se activa la bomba masiva, la pantalla se tiñe de color transparente */
+.massiveOverlay[data-massive="true"] {
+  opacity: 0.15; /* Transparencia perfecta para que se note pero no encandile */
+}
+
+/* Configuración base de todas las líneas del borde */
+.borderLine {
+  position: absolute;
+  background-color: var(--path-color);
+  box-shadow: 0 0 15px var(--path-color), 0 0 5px var(--path-color);
+  transition: width 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94), 
+              height 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* LÍNEAS HORIZONTALES (Nacen en el medio y se estiran a las esquinas) */
+.top, .bottom {
+  left: 50%;
+  transform: translateX(-50%);
+  width: var(--h-prog);
+  height: 6px;
+}
+.top { top: 0; }
+.bottom { bottom: 0; }
+
+/* LÍNEAS VERTICALES (Nacen en las esquinas y se encuentran en el medio) */
+.leftTop, .leftBottom, .rightTop, .rightBottom {
+  width: 6px;
+  height: var(--v-prog);
+}
+.leftTop { top: 0; left: 0; }
+.leftBottom { bottom: 0; left: 0; }
+.rightTop { top: 0; right: 0; }
+.rightBottom { bottom: 0; right: 0; }

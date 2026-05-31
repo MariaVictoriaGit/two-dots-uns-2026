@@ -82,9 +82,9 @@ connect(Grid, NumOfColumns, Path, Effects) :- % motor de todo el manejo de la ju
         ]
     ).
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-eliminar_color(Grid, Path, NumOfColumns, Color, GridSinColores, CantidadRealColor,NuevosAgua) :-
-    encontrar_indices_color(Grid, Color, IndicesColorTotal),
+%-------------------------------------------------------------------------------------------------------------
+    eliminar_color(Grid, Path, NumOfColumns, Color, GridSinColores, CantidadRealColor,NuevosAgua) :-
+        encontrar_indices_color(Grid, Color, IndicesColorTotal),
         length(IndicesColorTotal, CantidadRealColor),
 
         % 1. factor común de las cosas que se hacen en todo camino cerrado, bomba o no.
@@ -95,6 +95,8 @@ eliminar_color(Grid, Path, NumOfColumns, Color, GridSinColores, CantidadRealColo
         aplicar_agua_a_grilla(Grid, IndicesAgua, GridConAgua, NuevosAgua),
         eliminar_colores(GridConAgua, Color, GridSinColores).
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % VALIDAMOS LA JUGADA
 /* Lógica
 Grilla de puntos de colores conectables.
@@ -144,17 +146,14 @@ mismo_color(Grid, [X|Z], Color, Cantidad):-
     color_en(Grid, X, Color),
     forall(member(Y, Z), color_en(Grid, Y, Color)),
     length([X|Z], Cantidad).
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-% ACCESOS
 
 esta_elemento(E, Lista, X) :-
     E >= 0,
     nth0(E, Lista, X).
-/*nth0/3 es un predicado estándar de Prolog para acceder a elementos de una lista por índice empezando en 0.*/
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% ELIMINACIÓN
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% ------------------------------------------------------------------------------- ELIMINACIÓN ------------------------------------------------------------------------------------------
 % caso base
 eliminar_path(Grid, [], Grid).
 % Caso recursivo: Tomamos el primer índice del camino (Idx)
@@ -172,7 +171,7 @@ remover_color(_, []).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%-------------------------------------------------------------------------   BOMBA -----------------------------------------------------------------------------
+%---------------------------------------------------------------------------------   BOMBA -----------------------------------------------------------------------------------------------------
 es_cerrado(Path) :-
     length(Path, Len),
     Len > 2,
@@ -358,8 +357,10 @@ eliminar_colores([Celda|Resto], Color, [NuevaCelda|RestoNew]) :-
     ),
     eliminar_colores(Resto, Color, RestoNew).
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%--------------------------------------------------------------------------------------------     AGUA      ---------------------------------------------------------------------
+%--------------------------------------------------------------------------------------------     AGUA      ----------------------------------------------------------------------------
+
 % Encuentra índices adyacentes a agua de los puntos donde estaba ese color
 encontrar_indices_color(Grid, Color, Indices) :-
     findall(I, (nth0(I, Grid, Celda), Celda = [Color|_]), Indices).
@@ -443,6 +444,8 @@ aplicar_agua_rec(Grid, [Idx|RestoIdx], NewGrid, Nuevos) :-
     
     aplicar_agua_rec(TempGrid, RestoIdx, NewGrid, RestoNuevos).
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %---------------------------------------------------------------------------------        GRAVEDAD     -----------------------------------------------------------------------------
 

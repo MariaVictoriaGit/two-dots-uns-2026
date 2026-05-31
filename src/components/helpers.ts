@@ -21,6 +21,14 @@ export function connectable(posA: number, posB: number, grid: Grid): boolean {
 export function isConnectableDot(value: CellContent): boolean {
     return colors.includes(value);
 }
+
+export function checkIsPathClosed(currentPath: number[]): boolean {
+    if (currentPath.length < 4) return false;
+    const lastIdx = currentPath[currentPath.length - 1];
+    const firstOccurrence = currentPath.indexOf(lastIdx);
+    return firstOccurrence !== -1 && firstOccurrence < currentPath.length - 2;
+}
+
 //no tocar feo tuto quema
 export function useHistory({ grid, objectives, waiting }: { grid: Grid, objectives: Objectives, waiting: boolean }): { grid?: Grid, objectives?: Objectives } {
     const [history, setHistory] = useState<{ grid: Grid, objectives: Objectives }[]>([]);

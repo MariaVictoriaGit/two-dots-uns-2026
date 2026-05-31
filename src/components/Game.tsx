@@ -4,7 +4,8 @@ import Board from './Board';
 import { delay } from './util';
 import styles from './Game.module.css';
 import { CellContent, Grid, Objectives, EffectTerm, EffectInfoTerm, colors, colorToCss } from './model';
-import { useHistory } from './helpers';
+import { useHistory, checkIsPathClosed } from './helpers';
+
 
 function Game() {
   // State
@@ -151,6 +152,22 @@ function Game() {
   
   const showGameOver = !isAnimating && (isVictory || isDefeat);
 
+  // --- LÓGICA DE FEEDBACK VISUAL ---
+  // 1. Identificamos qué color está seleccionando el jugador
+  const currentColorContent = path.length > 0 && grid 
+      ? grid[path[0]].find(v => ['r', 'g', 'y', 'c', 'p', 'b'].includes(v as string)) as CellContent 
+      : null;
+  const currentColorCss = currentColorContent ? colorToCss(currentColorContent) : 'transparent';
+
+  // 2. Evaluamos si se activa el borrado masivo
+  const isClosed = checkIsPathClosed(path);
+  const isMassiveClear = path.length >= 13 || isClosed;
+
+  // 3. Calculamos el llenado de los bordes (Horizontal primero, luego Vertical)
+  // El progreso horizontal va de la ficha 1 a la 6. El vertical de la 7 a la 13.
+  const horizontalProgress = isMassiveClear ? 100 : Math.min((path.length / 6) * 100, 100);
+  const verticalProgress = isMassiveClear ? 100 : (path.length > 6 ? Math.min(((path.length - 6) / 7) * 100, 100) : 0);
+  // -----------------------------------
   return (
     <div className={styles.game} style={{ '--num-columns': numOfColumns } as React.CSSProperties}>
       <div className={styles.header}>
@@ -184,6 +201,30 @@ function Game() {
           })}
         </div>
       </div>
+      
+      {path.length > 0 && (
+        // Feedback visual mdel camino cerrado o largo (borde que se va llenando y fondo que aparece)
+          <div 
+              className={styles.massiveOverlay} 
+              data-massive={isMassiveClear}
+              style={{
+                  '--path-color': currentColorCss,
+                  '--h-prog': `${horizontalProgress}%`,
+                  '--v-prog': `${verticalProgress / 2}%`, // Dividido 2 porque crece de ambos lados
+                  backgroundColor: isMassiveClear ? currentColorCss : 'transparent',
+              } as React.CSSProperties}
+          >
+              {/* Bordes Horizontales (Crecen desde el centro hacia las esquinas) */}
+              <div className={`${styles.borderLine} ${styles.top}`} />
+              <div className={`${styles.borderLine} ${styles.bottom}`} />
+
+              {/* Bordes Verticales (Crecen desde las esquinas hacia el medio) */}
+              <div className={`${styles.borderLine} ${styles.leftTop}`} />
+              <div className={`${styles.borderLine} ${styles.leftBottom}`} />
+              <div className={`${styles.borderLine} ${styles.rightTop}`} />
+              <div className={`${styles.borderLine} ${styles.rightBottom}`} />
+          </div>
+      )}
       <Board
         grid={historyGrid ?? grid}
         numOfColumns={numOfColumns!}
