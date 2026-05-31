@@ -59,6 +59,10 @@ La interacción entre React y Prolog se realiza a través del predicado `connect
 
 - Fin del juego: 
 
+## Casos de prueba:
+
+
+
 ## Aspectos destacados en React
 - 
 
@@ -70,3 +74,60 @@ La interacción entre React y Prolog se realiza a través del predicado `connect
 - Además de la gestión de indices
 - Partición en columnas/segmentos
 - La expancion del agua con la bomba
+
+
+
+
+
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Al probar los casos revisar de cero:(asi desp los metemos en los ejemplos con las capturas)
+* encerrar agua
+* encerrar obstaculos
+* encerrar espacios vacios
+* la bomba cae una posicion
+* la bomba cae varias posiciones
+* la bomba atraviesa huecos
+* la bomba es eliminada directamente
+* la bomba explota por otra explosion
+* bomba en borde superior
+* bomba en borde inferior
+* bomba en borde izquierdo
+* bomba en borde derecho
+* bomba en esquina superior izquierda
+* bomba en esquina superior derecha
+* bomba en esquina inferior izquierda
+* bomba en esquina inferior derecha
+* los elementos especiales no pueden convertirse en bombas
+* espacio aislado
+* espacios consecutivos
+* espacios en bordes
+* expansion de agua cerca de obstaculos
+
+/*
+init inicial
+
+init([
+	% Fila 0 (índices 0-7)
+	[-], [r], [c], [p], [-], [-], [-], [-],
+	% Fila 1 (índices 8-15)
+	[c], [y], [g], [p], [r], [-], [-], [-],
+	% Fila 2 (índices 16-23)
+	[r], [r], [g], [y], [r], [g], [-], [-],
+	% Fila 3 (índices 24-31)
+	[y], [c], [-], [y], [c], [g], [g], [-],
+	% Fila 4 (índices 32-39)
+	[y, ~], [c, ~], [-], [g], [c, ~], [y, ~], [c, ~], [c],
+	% Fila 5 (índices 40-47)
+	[c, ~], [c, ~], [-], [g, ~], [c, ~], [y, ~], [c, ~], [-],
+	% Fila 6 (índices 48-55)
+	[c, ~], [y, ~], [g, ~], [g, ~], [c, ~], [c, ~], [-], [-],
+	% Fila 7 (índices 56-63)
+	[c, ~], [y, ~], [y, ~], [y, ~], [y, ~], [-], [-], [-],
+	% Fila 8 (índices 64-71)
+	[-], [y, ~], [y, ~], [y], [-], [-], [-], [-]
+], 8, [[r, 10], [g, 10], [p, 15], [~, 21]], 35).
+*/
