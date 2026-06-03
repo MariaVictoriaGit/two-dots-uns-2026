@@ -5,7 +5,7 @@ export const colors = ["r", "c", "g", "p", "y", "b"]; // aca se puede cambiar lo
 export function colorToCss(color: typeof colors[number]): string {
     switch (color) {
         case "r": return "#e84d60";
-        case "c": return "#7bbdc9";
+        case "c": return "#656ddd";
         case "g": return "#2cac75";
         case "p": return "#a94ede";
         case "y": return "#fecd6c";

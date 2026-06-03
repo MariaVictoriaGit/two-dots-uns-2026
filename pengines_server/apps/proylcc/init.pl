@@ -11,8 +11,8 @@
  * 
  * Representación de contenido de una celda:
  * r = red
- * c = cyan
- * p = purple
+ * c = cyber grape (color morado azulado)
+ * p = pink
  * y = yellow
  * g = green
  * - = obstáculo (celda no jugable)

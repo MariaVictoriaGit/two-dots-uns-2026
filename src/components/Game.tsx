@@ -81,7 +81,7 @@ function Game() {
     if (activePowerUp !== null && newPath.length === 1) {
       const targetIdx = newPath[0];
       const cell = grid![targetIdx];
-      const hasColor = cell.some(v => ['r', 'g', 'y', 'c', 'p', 'b'].includes(v as string));
+      const hasColor = cell.some(v => colors.includes(v as string));
 
       if (activePowerUp === 'borrar_color') {
         if (hasColor) executePowerUp('borrar_color', [targetIdx]);
@@ -240,7 +240,7 @@ function Game() {
   // --- LÓGICA DE FEEDBACK VISUAL ---
   // 1. Identificamos qué color está seleccionando el jugador
   const currentColorContent = path.length > 0 && grid 
-      ? grid[path[0]].find(v => ['r', 'g', 'y', 'c', 'p', 'b'].includes(v as string)) as CellContent 
+      ? grid[path[0]].find(v => colors.includes(v as string)) as CellContent 
       : null;
   const currentColorCss = currentColorContent ? colorToCss(currentColorContent) : 'transparent';
 
