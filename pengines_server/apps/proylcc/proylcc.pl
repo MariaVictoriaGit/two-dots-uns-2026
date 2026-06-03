@@ -13,20 +13,25 @@ ESTRUCTURA ///
 Celda = [Color , _]
 
 */
+
+% donde Effects es una lista de effect(ResultingGrid, AuxiliaryInfo)
+% donde AuxiliaryInfo es una lista de información adicional que se quiera devolver
+% para la UI (por ejemplo, los objetivos cumplidos, o qué celdas se vieron afectadas, etc).
+
 :- module(proylcc,
     [  
-        connect/4
+        connect/4,
+        usar_powerup/5
     ]).
 :-use_module(library(lists)).
 :- use_module(library(random)).
 
-% connect(+Grid, +NumOfColumns, +Path, -Effects)
-% donde Effects es una lista de effect(ResultingGrid, AuxiliaryInfo)
-% donde AuxiliaryInfo es una lista de información adicional que se quiera devolver
-% para la UI (por ejemplo, los objetivos cumplidos, o qué celdas se vieron afectadas, etc).
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% ENTRADA PRINCIPAL
+% ========================================================================================================================================================================
+%                                                                   MOTOR PRINCIPAL (connect, validaciones, mismo_color)
+% ========================================================================================================================================================================
 
+% ENTRADA PRINCIPAL
+% connect(+Grid, +NumOfColumns, +Path, -Effects)
 connect(Grid, NumOfColumns, Path, Effects) :- % motor de todo el manejo de la jugada
     % verificamos que el camino sea válido
     camino_valido(Path, NumOfColumns, Grid),
@@ -64,7 +69,7 @@ connect(Grid, NumOfColumns, Path, Effects) :- % motor de todo el manejo de la ju
 
     % 4. Explosión y Gravedad Final
     % (Si hay bombas en la grilla, explotan y vuelve a actuar la gravedad)
-    % aca deberia cargar el path de todos los elimininados por la bomba, para luego aplicarles expandir agua si lo requieren y contar el agua y lo colores logrados por la bomba
+   
     explosionar_bombas(GridPostGravedad1, NumOfColumns, GridPostExplosion, HuboExplosion, AchievedBombas),
     (HuboExplosion == true ->
         gravedad(GridPostExplosion, NumOfColumns, GridFinal),
@@ -83,6 +88,7 @@ connect(Grid, NumOfColumns, Path, Effects) :- % motor de todo el manejo de la ju
     ).
 
 %-------------------------------------------------------------------------------------------------------------
+    % eliminar_color(+Grid, +Path, +NumOfColumns, +Color, -GridSinColores, -CantidadRealColor, -NuevosAgua)
     eliminar_color(Grid, Path, NumOfColumns, Color, GridSinColores, CantidadRealColor,NuevosAgua) :-
         encontrar_indices_color(Grid, Color, IndicesColorTotal),
         length(IndicesColorTotal, CantidadRealColor),
@@ -94,7 +100,7 @@ connect(Grid, NumOfColumns, Path, Effects) :- % motor de todo el manejo de la ju
         append(IndicesAgua1, IndicesAgua2, IndicesAgua),
         aplicar_agua_a_grilla(Grid, IndicesAgua, GridConAgua, NuevosAgua),
         eliminar_colores(GridConAgua, Color, GridSinColores).
-
+    
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % VALIDAMOS LA JUGADA
@@ -103,6 +109,7 @@ Grilla de puntos de colores conectables.
 El usuario debe poder seleccionar y conectar puntos adyacentes del mismo color
 para formar una jugada válida. Al completar la jugada, esos puntos desaparecen.*/
 
+% camino_valido(+Path, +NumOfColumns, +Grid)
 camino_valido([_], _, _).
 camino_valido([X, Y|Resto], NumOfColumns, Grid):-
     celda_con_color(Grid, X),
@@ -111,6 +118,7 @@ camino_valido([X, Y|Resto], NumOfColumns, Grid):-
     adyacente(X, Y, NumOfColumns, Grid),
     camino_valido([Y|Resto], NumOfColumns, Grid).
 
+% adyacente(+X, ?Y, +NumOfColumns, +Grid)
 adyacente(X, Y, NumOfColumns, Grid):-
     length(Grid, Len),
     (% derecha
@@ -127,6 +135,7 @@ adyacente(X, Y, NumOfColumns, Grid):-
         Y >= 0
     ).
 
+% celda_con_color(+Grid, +Indice)
 celda_con_color(Grid, Indice):-
     esta_elemento(Indice, Grid, Celda),
     Celda \= [],
@@ -134,44 +143,70 @@ celda_con_color(Grid, Indice):-
     Celda = [Color | _],
     es_color(Color).
 
+% color_en(+Grid, +Indice, ?Color)
 color_en(Grid, Indice, Color):-
     esta_elemento(Indice, Grid, Celda),
     Celda = [Color | _],
     es_color(Color).
 
+% es_color(+X)
 es_color(X):-
     member(X, [r, g, y, c, p, b]).
 
+% mismo_color(+Grid, +Path, -Color, -Cantidad)
 mismo_color(Grid, [X|Z], Color, Cantidad):-
     color_en(Grid, X, Color),
     forall(member(Y, Z), color_en(Grid, Y, Color)),
     length([X|Z], Cantidad).
 
+% esta_elemento(+E, +Lista, -X)
 esta_elemento(E, Lista, X) :-
     E >= 0,
     nth0(E, Lista, X).
 
+% =======================================================================================================================================================================
+%                                                               MECÁNICAS BÁSICAS (eliminación, bombas, agua)
+% =======================================================================================================================================================================
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % ------------------------------------------------------------------------------- ELIMINACIÓN ------------------------------------------------------------------------------------------
-% caso base
+% eliminar_path(+Grid, +Path, -NewGrid)
 eliminar_path(Grid, [], Grid).
-% Caso recursivo: Tomamos el primer índice del camino (Idx)
+
 eliminar_path(Grid, [Idx|RestoPath], NewGrid) :-
     nth0(Idx, Grid, CeldaVieja, GridSinIdx),
     remover_color(CeldaVieja, CeldaNueva),
     nth0(Idx, TempGrid, CeldaNueva, GridSinIdx),
     eliminar_path(TempGrid, RestoPath, NewGrid).
 
-
+% remover_color(+CeldaVieja, -CeldaNueva)
 remover_color([-], [-]) :- !.
 remover_color(Celda, [~]) :- 
     tiene_agua(Celda), !.
 remover_color(_, []).
 
+% Se encarga del flujo estándar: calcular agua, eliminar path, aplicar gravedad y armar el efecto.
+% eliminacion_simple(+Grid, +Path, +NumOfColumns, +Color, +Cantidad, -Effects)
+eliminacion_simple(Grid, Path, NumOfColumns, Color, Cantidad, Effects) :-
+    expandir_agua_en_jugada(Grid, Path, NumOfColumns, IndicesAgua),
+    aplicar_agua_a_grilla(Grid, IndicesAgua, GridConAgua, NuevosAgua),
+    eliminar_path(GridConAgua, Path, GridPreGravedad),
+      
+    length(NuevosAgua, CantidadAgua),
+    gravedad(GridPreGravedad, NumOfColumns, GridFinal),
+        
+    Effects = [
+        effect(GridPreGravedad, [achieved([[Color, Cantidad], [~, CantidadAgua]])]),
+        effect(GridFinal, [cae])
+    ].
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %---------------------------------------------------------------------------------   BOMBA -----------------------------------------------------------------------------------------------------
+% es_cerrado(+Path)
 es_cerrado(Path) :-
     length(Path, Len),
     Len > 2,
@@ -188,6 +223,7 @@ es_cerrado([_|Resto]) :-
         es_cerrado(XResto)).
 
 % Encontrar posiciones de bombas usando Flood Fill desde los bordes
+% encontrar_posiciones_bombas(+Path, +NumOfColumns, +Grid, -IndicesBombas)
 encontrar_posiciones_bombas(Path, NumOfColumns, Grid, IndicesBombas) :-
     length(Grid, TotalCells),
     bordes_grilla(TotalCells, NumOfColumns, Bordes),
@@ -205,6 +241,7 @@ encontrar_posiciones_bombas(Path, NumOfColumns, Grid, IndicesBombas) :-
 
 
 % Encontrar todas las posiciones de los bordes de la grilla sin duplicados
+% bordes_grilla(+TotalCells, +NumOfColumns, -BordesUnicos)
 bordes_grilla(TotalCells, NumOfColumns, BordesUnicos) :-
     MaxI is TotalCells - 1,
     findall(I, (
@@ -214,13 +251,14 @@ bordes_grilla(TotalCells, NumOfColumns, BordesUnicos) :-
     sort(Bordes, BordesUnicos).
 
 % Un índice es borde si está en la fila 0, última fila, columna 0 o última columna
+% es_borde(?I, +NumOfColumns, +TotalCells)
 es_borde(I, NumOfColumns, _) :- I < NumOfColumns.
 es_borde(I, NumOfColumns, TotalCells) :- I >= TotalCells - NumOfColumns.
 es_borde(I, NumOfColumns, _) :- I mod NumOfColumns =:= 0.
 es_borde(I, NumOfColumns, _) :- I mod NumOfColumns =:= NumOfColumns - 1.
 
 % Flood Fill (Inundación)
-% inundar(ToVisit, Path, NumOfColumns, Grid, Visited, FinalVisited)
+% inundar(+ToVisit, +Path, +NumOfColumns, +Grid, +Visited, -FinalVisited)
 inundar([], _, _, _, Visited, Visited).
 inundar([Act | RestoToVisit], Path, NumOfColumns, Grid, Visited, FinalVisited) :-
     % Si el nodo actual ya fue visitado (por precaución), lo salteamos
@@ -244,11 +282,12 @@ inundar([Act | RestoToVisit], Path, NumOfColumns, Grid, Visited, FinalVisited) :
         inundar(NuevoToVisit, Path, NumOfColumns, Grid, NuevoVisited, FinalVisited)
     ).
 
-% Vecinos ortogonales usando el adyacente general
+% vecinos_ortogonales(+I, +NumOfColumns, +Grid, -Vecinos)
 vecinos_ortogonales(I, NumOfColumns, Grid, Vecinos) :-
     findall(V, adyacente(I, V, NumOfColumns, Grid), Vecinos).
 
 % Coloca las bombas respetando el agua si la hubiera
+% colocar_bombas_en_grid(+Grid, +IndicesBombas, -NewGrid)
 colocar_bombas_en_grid(Grid, [], Grid).
 colocar_bombas_en_grid(Grid, [Idx|RestoIdx], NewGrid) :-
     nth0(Idx, Grid, CeldaOriginal, GridSinIdx),
@@ -264,6 +303,7 @@ colocar_bombas_en_grid(Grid, [Idx|RestoIdx], NewGrid) :-
     nth0(Idx, TempGrid, CeldaNueva, GridSinIdx),
     colocar_bombas_en_grid(TempGrid, RestoIdx, NewGrid).
 
+% adyacente_bomba(+X, -Y, +NumOfColumns, +Grid)
 adyacente_bomba(X, Y, NumOfColumns, Grid) :-
     length(Grid, Len),
     FilaX is X // NumOfColumns,
@@ -280,6 +320,7 @@ adyacente_bomba(X, Y, NumOfColumns, Grid) :-
     Y < Len.
 
 % Detecta dónde cayeron las bombas, busca vecinos y limpia
+% explosionar_bombas(+Grid, +NumOfColumns, -GridFinal, -HuboExplosion, -AchievedBombas)
 explosionar_bombas(Grid, NumOfColumns, GridFinal, HuboExplosion, AchievedBombas) :-
     % Buscamos el color 'b' dentro de las celdas
     findall(I, (nth0(I, Grid, Celda), member(b, Celda)), IndicesBombas),
@@ -302,9 +343,7 @@ explosionar_bombas(Grid, NumOfColumns, GridFinal, HuboExplosion, AchievedBombas)
 
         contar_colores_destruidos(Grid, IndicesAEliminar, AchievedBombasBase),
         
-        % expansión de agua intentando economizar código 
-        % Reutilizamos expandir_agua_en_jugada para mojar todos los índices destruidos 
-        % (si al menos uno toca agua)
+        % expansión de agua  para mojar todos los índices destruidos (si al menos uno toca agua)
         expandir_agua_en_jugada(Grid, IndicesAEliminar, NumOfColumns, TodosLosAguaBruto),
         
         % Juntamos y aplicamos el agua
@@ -326,6 +365,7 @@ explosionar_bombas(Grid, NumOfColumns, GridFinal, HuboExplosion, AchievedBombas)
         AchievedBombas = []
     ).
 
+% contar_colores_destruidos(+Grid, +Indices, -Achieved)
 contar_colores_destruidos(Grid, Indices, Achieved) :-
     findall(Color, (
         member(I, Indices),
@@ -335,11 +375,13 @@ contar_colores_destruidos(Grid, Indices, Achieved) :-
     ), ColoresDestruidos),
     contar_ocurrencias(ColoresDestruidos, Achieved).
 
+% contar_ocurrencias(+Lista, -Frecuencias)
 contar_ocurrencias([], []).
 contar_ocurrencias([H|T], Frecuencias) :-
     contar_ocurrencias(T, RestoFrecuencias),
     actualizar_frecuencia(H, RestoFrecuencias, Frecuencias).
 
+% actualizar_frecuencia(+Color, +Frecuencias, -FrecuenciasActualizadas)
 actualizar_frecuencia(C, [], [[C, 1]]).
 actualizar_frecuencia(C, [[C, N]|T], [[C, N1]|T]) :- N1 is N + 1, !.
 actualizar_frecuencia(C, [[C1, N1]|T], [[C1, N1]|T2]) :-
@@ -347,7 +389,7 @@ actualizar_frecuencia(C, [[C1, N1]|T], [[C1, N1]|T2]) :-
     actualizar_frecuencia(C, T, T2).
 
 % Elimina las celdas usando remover_color/2 para no romper la lógica de agua/obstáculos
-
+%eliminar_colores(+Grid, +Color, -NewGrid)
 eliminar_colores([], _, []).
 eliminar_colores([Celda|Resto], Color, [NuevaCelda|RestoNew]) :-
     (Celda = [Color|_] -> 
@@ -362,9 +404,11 @@ eliminar_colores([Celda|Resto], Color, [NuevaCelda|RestoNew]) :-
 %--------------------------------------------------------------------------------------------     AGUA      ----------------------------------------------------------------------------
 
 % Encuentra índices adyacentes a agua de los puntos donde estaba ese color
+% encontrar_indices_color(+Grid, +Color, -Indices)
 encontrar_indices_color(Grid, Color, Indices) :-
     findall(I, (nth0(I, Grid, Celda), Celda = [Color|_]), Indices).
 
+% expandir_agua_desde_colores_eliminados(+Grid, +Color, +NumOfColumns, -IndicesAExpandir)
 expandir_agua_desde_colores_eliminados(Grid, Color, NumOfColumns, IndicesAExpandir) :-
      encontrar_indices_color(Grid, Color, IndicesColor),
     findall(I,
@@ -396,6 +440,7 @@ expandir_agua_por_color_rec([Act|Resto], Grid, NumOfColumns, Visitados, Resultad
     expandir_agua_por_color_rec(NuevaCola, Grid, NumOfColumns, NuevosVisitados, Resultado).
 
 % ---------------Expansión Agua-------------------
+% expandir_agua_en_jugada(+Grid, +Path, +NumOfColumns, -IndicesAExpandir)
 expandir_agua_en_jugada(Grid, Path, NumOfColumns, Resultado) :-
     % Buscamos si existe un punto P en el camino que..
     member(P, Path), 
@@ -410,14 +455,15 @@ expandir_agua_en_jugada(Grid, Path, NumOfColumns, Resultado) :-
     !,
     Resultado = Path.
 
-% Si no se cumple lo de arriba, devolvemos lista vacía (no se moja nada nuevo)
-expandir_agua_en_jugada(_, _, _, []).
+expandir_agua_en_jugada(_, _, _, []). % Si no se cumple lo de arriba, devolvemos lista vacía (no se moja nada nuevo)
 
+% celda_tiene_agua(+Grid, +Idx)
 celda_tiene_agua(Grid, Idx) :- 
-    nth0(Idx, Grid, Celda), %busca la selda Idx en la grilla
+    nth0(Idx, Grid, Celda), %busca la celda Idx en la grilla
     tiene_agua(Celda). %se fija si la celda en el índice dado tiene agua
 
 % --------aplicamos el agua a la grilla-----------
+% aplicar_agua_a_grilla(+Grid, +IndicesADarAgua, -NewGrid, -Nuevos)
 aplicar_agua_a_grilla(Grid, IndicesADarAgua, NewGrid, Nuevos) :-
     aplicar_agua_rec(Grid, IndicesADarAgua, NewGrid, Nuevos).
 % Caso base
@@ -445,51 +491,55 @@ aplicar_agua_rec(Grid, [Idx|RestoIdx], NewGrid, Nuevos) :-
     aplicar_agua_rec(TempGrid, RestoIdx, NewGrid, RestoNuevos).
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-%---------------------------------------------------------------------------------        GRAVEDAD     -----------------------------------------------------------------------------
-
+% ==============================================================================================================================================
+%                                                  FÍSICAS (gravedad, transponer matrices)
+% ==============================================================================================================================================
 %------------ pasamos de la grilla plana a filas y columnas para facilitar la manipulacion de la gravedad -----------
+% grilla_filas(+GridFlat, +NumCol, -Filas)
 grilla_filas([], _, []).
 grilla_filas(GridFlat, NumCol, [Fila|Resto]) :-
     length(Fila, NumCol),
     append(Fila, RestoFlat, GridFlat),
     grilla_filas(RestoFlat, NumCol, Resto).
 
+% transponer(+Matriz, -Transpuesta)
 transponer([], []).
 transponer([[]|_], []) :- !.
 transponer(Matriz, [Columna|Resto]) :-
     primera_columna(Matriz, Columna, RestoFilas),
     transponer(RestoFilas, Resto).
 
+% primera_columna(+Matriz, -Columna, -RestoFilas)
 primera_columna([], [], []).
 primera_columna([[X|Xs]|Filas], [X|Col], [Xs|Resto]) :-
     primera_columna(Filas, Col, Resto).
 
+% grid_a_columnas(+GridFlat, +NumCol, -Columnas)
 grid_a_columnas(GridFlat, NumCol, Columnas) :-
     grilla_filas(GridFlat, NumCol, Filas),
     transponer(Filas, Columnas).
 
+% aplicar_gravedad_columnas(+Columnas, -ColumnasProcesadas)
 aplicar_gravedad_columnas([], []).
 aplicar_gravedad_columnas([Col|Resto], [NuevaCol|RestoNuevo]) :-
     gravedad_columna_con_obstaculos(Col, NuevaCol),
     aplicar_gravedad_columnas(Resto, RestoNuevo).
 
-
+% gravedad(+GridFlat, +NumCols, -NewGridFlat)
 gravedad(GridFlat, NumCols, NewGridFlat) :-
    
     grid_a_columnas(GridFlat, NumCols, Columnas),
     
     aplicar_gravedad_columnas(Columnas, ColumnasProcesadas),
     
-    % 3. Volvemos a la estructura original
-    % Transponemos las columnas procesadas para obtener filas
+    % Volvemos a la estructura original, transponemos las columnas procesadas para obtener filas
     transponer(ColumnasProcesadas, FilasProcesadas),
     
     % Aplanamos la lista de filas para volver a tener una lista simple
     append(FilasProcesadas, NewGridFlat), !.
 
 %--------Gravedad Con Obstaculos --------
+% gravedad_columna_con_obstaculos(+Columna, -NuevaColumna)
 gravedad_columna_con_obstaculos(Col, NewCol) :-
     % Extraemos colores sobrevivientes
     findall([Color], (member(C, Col), tiene_color_real(C), C = [Color|_]), Sobrevivientes),
@@ -504,7 +554,8 @@ gravedad_columna_con_obstaculos(Col, NewCol) :-
     % Acomodamos respetando los obstáculos del molde
     acomodar_con_obstaculos(Col, Fichas, NewCol), !.
 
-% Esta es la nueva función "mapeadora"
+
+% acomodar_con_obstaculos(+ColumnaOriginal, +FichasDisponibles, -ColumnaResultante)
 acomodar_con_obstaculos([], [], []).
 % Si hay obstáculo, se queda y NO consume ficha
 acomodar_con_obstaculos([C|RestoM], Fichas, [C|RestoR]) :-
@@ -521,6 +572,7 @@ acomodar_con_obstaculos([_|RestoM], [F|RestoF], [F|RestoR]) :-
 
 
 % --- AUXILIARES ---
+% crear_vacios_random(+N, -ListaVacios)
 crear_vacios_random(0, []) :- !.
 crear_vacios_random(N, [[Color]|R]) :-
     N > 0,
@@ -528,11 +580,117 @@ crear_vacios_random(N, [[Color]|R]) :-
     N1 is N - 1,
     crear_vacios_random(N1, R).
 
+% tiene_color_real(+Celda)
 tiene_color_real(Celda) :- 
     Celda = [Color|_], 
     es_color(Color).
 
-
+% tiene_agua(+Celda)
 tiene_agua(Celda) :- 
     member(~, Celda).
+
+% es_obstaculo(+Celda)
 es_obstaculo([-]).
+
+% =========================================================================================================================================================================
+%                                                              HABILIDADES ESPECIALES (Power-Ups)
+% =========================================================================================================================================================================
+
+% usar_powerup(+PowerUp, +Grid, +NumOfColumns, +TargetIndices, -Effects)
+% Borrar un color entero 
+usar_powerup(borrar_color, Grid, NumOfColumns, [TargetIdx], Effects) :-
+    color_en(Grid, TargetIdx, Color),
+    eliminar_color(Grid, [TargetIdx], NumOfColumns, Color, GridPreGravedad, CantidadRealColor, NuevosAgua),
+    length(NuevosAgua, CantidadAgua),
+    gravedad(GridPreGravedad, NumOfColumns, GridFinal),
+    Effects = [
+        effect(GridPreGravedad, [achieved([[Color, CantidadRealColor], [~, CantidadAgua]])]),
+        effect(GridFinal, [cae])
+    ].
+
+% Borrar una sola ficha con un borrador
+usar_powerup(borrador, Grid, NumOfColumns, [TargetIdx], Effects) :-
+    color_en(Grid, TargetIdx, Color),
+    % Definimos que el camino es solo esa ficha y la cantidad es 1
+    Path = [TargetIdx],
+    Cantidad = 1,
+    eliminacion_simple(Grid, Path, NumOfColumns, Color, Cantidad, Effects).
+
+% Romper la fila y columna de una ficha (Cruz)
+usar_powerup(cruz, Grid, NumOfColumns, [TargetIdx], Effects) :-
+
+    indices_en_cruz(TargetIdx, NumOfColumns,  Grid, PathCruz),
+
+    contar_colores_destruidos(Grid, PathCruz, AchievedBase),
+
+    expandir_agua_en_jugada(Grid, PathCruz, NumOfColumns, IndicesAgua),
+    aplicar_agua_a_grilla(Grid, IndicesAgua, GridConAgua, NuevosAgua),
+    eliminar_path(GridConAgua, PathCruz, GridPreGravedad),
+    length(NuevosAgua, CantidadAgua),
+
+    (CantidadAgua > 0 ->
+        append(AchievedBase, [[~, CantidadAgua]], AchievedFinal)
+    ;
+        AchievedFinal = AchievedBase
+    ),
+    
+    gravedad(GridPreGravedad, NumOfColumns, GridFinal),
+    Effects = [
+        effect(GridPreGravedad, [achieved(AchievedFinal)]),
+        effect(GridFinal, [cae])
+    ].
+
+% Mezclar todo el tablero 
+usar_powerup(mezclar, Grid, _NumOfColumns, _, Effects) :-
+   % 1. Extraemos los colores vivos en una sola línea usando tu helper es_color/1
+    findall(Color, (member(Celda, Grid), Celda = [Color|_], es_color(Color)), ColoresPuros),
+    
+    % 2. Mezclamos esa lista 
+    mezclar_lista(ColoresPuros, ColoresMezclados),
+    
+    % 3. Volvemos a armar la grilla inyectando los colores nuevos en los huecos legales
+    reconstruir_grilla_mezclada(Grid, ColoresMezclados, ShuffledGrid),
+    
+    % 4. Devolvemos la nueva grilla. No hay objetivos cumplidos ni caídas.
+    Effects = [
+        effect(ShuffledGrid, [])
+    ].
+
+
+
+% indices_en_cruz(+TargetIdx, +NumOfColumns, +Grid, -IndicesCruz)
+indices_en_cruz(TargetIdx, NumOfColumns, Grid, IndicesCruz) :-
+    FilaObjetivo is TargetIdx // NumOfColumns,
+    ColObjetivo is TargetIdx mod NumOfColumns,
+    
+    % Encontramos todos los índices que compartan fila o columna
+    findall(I, (
+        nth0(I, Grid, _),
+        (I // NumOfColumns =:= FilaObjetivo ; I mod NumOfColumns =:= ColObjetivo)
+    ), IndicesCruz).
+
+
+% reconstruir_grilla_mezclada(+GridMolde, +ColoresDisponibles, -NuevaGrid)
+reconstruir_grilla_mezclada([], [], []).
+reconstruir_grilla_mezclada([CeldaOrig|RestoOrig], ColoresDisp, [NuevaCelda|RestoNueva]) :-
+    es_obstaculo(CeldaOrig), !, % Es un obstáculo. Se copia igual y NO se consume ningún color.
+    NuevaCelda = CeldaOrig,
+    reconstruir_grilla_mezclada(RestoOrig, ColoresDisp, RestoNueva).
+reconstruir_grilla_mezclada([CeldaOrig|RestoOrig], [ColorNuevo|RestoDisp], [NuevaCelda|RestoNueva]) :-
+    tiene_agua(CeldaOrig), !, % La celda original tenía agua. Le metemos el color nuevo + el agua. Se consume 1 color.
+    NuevaCelda = [ColorNuevo, ~],
+    reconstruir_grilla_mezclada(RestoOrig, RestoDisp, RestoNueva).
+reconstruir_grilla_mezclada([_|RestoOrig], [ColorNuevo|RestoDisp], [[ColorNuevo]|RestoNueva]) :-
+    reconstruir_grilla_mezclada(RestoOrig, RestoDisp, RestoNueva). % Celda normal. Se pone el color puro. Se consume 1 color.
+
+
+% mezclar_lista(+Lista, -ListaMezclada)
+mezclar_lista([], []).
+mezclar_lista(Lista, [Elem|RestoMezclado]) :-
+    % 1. Elegimos un elemento al azar de la lista original
+    random_member(Elem, Lista),
+    % 2. Lo removemos de la lista (select saca la primera coincidencia que encuentra)
+    select(Elem, Lista, RestoLista),
+    % 3. Repetimos el proceso con los elementos que sobran
+    mezclar_lista(RestoLista, RestoMezclado).
+

@@ -6,6 +6,14 @@ import styles from './Game.module.css';
 import { CellContent, Grid, Objectives, EffectTerm, EffectInfoTerm, colors, colorToCss } from './model';
 import { useHistory, checkIsPathClosed } from './helpers';
 
+type PowerUpId = 'borrar_color' | 'borrador' | 'mezclar' | 'cruz';
+
+interface PowerUp {
+  id: PowerUpId;
+  name: string;
+  image: string;
+  count: number;
+}
 
 function Game() {
   // State
@@ -17,6 +25,15 @@ function Game() {
   const [objectives, setObjectives] = useState<Objectives>({});
   const [path, setPath] = useState<number[]>([]);
   const [waiting, setWaiting] = useState(false);
+
+  const [powerUps, setPowerUps] = useState<PowerUp[]>([
+    { id: 'mezclar', name: 'Mezclar', image: '/powerups/mezclar.png', count: 1 },
+    { id: 'borrador', name: 'borrador', image: '/powerups/borrador.png', count: 2 },
+    { id: 'borrar_color', name: 'Borrador', image: '/powerups/borrador.png', count: 3 },
+    { id: 'cruz', name: 'Láser Cruz', image: '/powerups/cruz.png', count: 2 } 
+  ]);
+  const [activePowerUp, setActivePowerUp] = useState<PowerUpId | null>(null);
+
   //este history no tocar tuto quema, es el coso para ver que hicimos en el pasado, no es el historial de movimientos, es el historial de estados del juego, para poder mostrar la animacion de los efectos, cada vez que se hace un movimiento se guarda el estado del juego antes de hacer el movimiento, y se muestra ese estado mientras se muestra la animacion de los efectos, y cuando termina la animacion se muestra el estado actual del juego
   const { grid: historyGrid, objectives: historyObjectives } = useHistory({ grid: grid!, objectives, waiting });
 
@@ -58,10 +75,57 @@ function Game() {
     if (waiting) {
       return;
     }
+
+    // seleccion de Power-Up
+    if (activePowerUp !== null && newPath.length === 1) {
+      const targetIdx = newPath[0];
+      const cell = grid![targetIdx];
+      const hasColor = cell.some(v => ['r', 'g', 'y', 'c', 'p', 'b'].includes(v as string));
+
+      if (activePowerUp === 'borrar_color') {
+        if (hasColor) executePowerUp('borrar_color', [targetIdx]);
+        else setActivePowerUp(null); // Si toca agua u obstáculo, cancela el poder
+      }
+      else if (activePowerUp === 'borrador') {
+        executePowerUp('borrador', [targetIdx]);
+      }
+      else if (activePowerUp === 'cruz') {
+        executePowerUp('cruz', [targetIdx]);
+      }
+      else if (activePowerUp === 'mezclar') {
+        executePowerUp('mezclar', [targetIdx]); 
+      }
+      return; 
+    }
+
     setPath(newPath);
     console.log(JSON.stringify(newPath));
   }
 
+  async function executePowerUp(tipoPoder: PowerUpId, params: number[]) {
+    setActivePowerUp(null); 
+    setWaiting(true);
+
+    const gridS = JSON.stringify(grid).replaceAll('"', '');
+    const paramsS = JSON.stringify(params); 
+    
+    // Llama al router de Prolog
+    const queryS = `usar_powerup(${tipoPoder}, ${gridS}, ${numOfColumns}, ${paramsS}, Effects)`; 
+    
+    const response = await pengine.query(queryS);
+    setPath([]); 
+    
+    if (response) {
+      setPowerUps(prev => prev.map(pu => 
+        pu.id === tipoPoder ? { ...pu, count: Math.max(0, pu.count - 1) } : pu
+      ));
+      animateEffects(response['Effects']);
+    } else {
+      console.log(`Prolog failed for powerup: ${tipoPoder}`);
+      setWaiting(false);
+    }
+  }
+  
   /**
    * Llamado cuando el usuario termina de dibujar un camino en la cuadrícula.
    */
@@ -170,6 +234,7 @@ function Game() {
   // -----------------------------------
   return (
     <div className={styles.game} style={{ '--num-columns': numOfColumns } as React.CSSProperties}>
+      {/* HEADER: Solo Movimientos y Objetivos */}
       <div className={styles.header}>
         <div className={styles.movesGroup}>
           <span className={styles.movesLabel}>MOVES</span>
@@ -201,7 +266,7 @@ function Game() {
           })}
         </div>
       </div>
-      
+      {/* CAPA DE ANIMACIÓN DE BORDES */}
       {path.length > 0 && (
         // Feedback visual mdel camino cerrado o largo (borde que se va llenando y fondo que aparece)
           <div 
@@ -225,6 +290,7 @@ function Game() {
               <div className={`${styles.borderLine} ${styles.rightBottom}`} />
           </div>
       )}
+      {/* TABLERO */}
       <Board
         grid={historyGrid ?? grid}
         numOfColumns={numOfColumns!}
@@ -233,7 +299,31 @@ function Game() {
         onDone={onPathDone} //el jugador solto el mouse, entonces se termina el camino
         readonly={waiting || historyGrid !== undefined || showGameOver} 
       />
+      {/* POWER-UPS */}
+      <div className={styles.powerUpContainer}>
+        {powerUps.map(pu => (
+          <button 
+            key={pu.id}
+            className={`${styles.powerUpBtn} ${activePowerUp === pu.id ? styles.powerUpBtnActive : ''}`}
+            onClick={() => {
+                setActivePowerUp(activePowerUp === pu.id ? null : pu.id);
+            }}
+            disabled={pu.count === 0 || waiting}
+            title={pu.name}
+          >
+            {/* Si queremos poner las imágenes: */}
+            {/* <img src={pu.image} alt={pu.name} className={styles.powerUpIcon} /> */}
+            
+            {/* Mientras uso de emojis: */}
+            <span style={{ fontSize: '24px', pointerEvents: 'none' }}>
+                {pu.id === 'borrar_color' ? '🪄' : pu.id === 'borrador' ? '🧽' : pu.id === 'cruz' ? '🎯' : '🔀'}
+            </span>
 
+            <span className={styles.powerUpBadge}>{pu.count}</span>
+          </button>
+        ))}
+      </div>  
+      {/* MODAL DE VICTORIA/DERROTA */}
       {showGameOver && (
         <div className={styles.gameOverOverlay}>
           <div className={styles.gameOverModal}>

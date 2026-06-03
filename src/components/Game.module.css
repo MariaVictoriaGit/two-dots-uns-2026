@@ -236,3 +236,96 @@
 .leftBottom { bottom: 0; left: 0; }
 .rightTop { top: 0; right: 0; }
 .rightBottom { bottom: 0; right: 0; }
+
+/* ========================================= */
+/* -------   POWER-UPS ------ */
+/* ========================================= */
+
+.powerUpContainer {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: center;
+  
+  /* Esto empuja la botonera hacia abajo del todo */
+  margin-top: auto; 
+  
+  /* Le damos el mismo estilo de cristal que al header */
+  background: var(--md-surface-container-high);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 12px 24px;
+  border-radius: 100px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(10px);
+  z-index: 10;
+}
+
+.powerUpBtn {
+  position: relative;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--md-on-surface);
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+/* Efecto Hover cuando pasas el mouse */
+.powerUpBtn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.15);
+  transform: scale(1.05);
+}
+
+/* Cuando ya no te quedan usos */
+.powerUpBtn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* Efecto cuando hiciste clic y está esperando que toques el tablero */
+.powerUpBtnActive {
+  background: rgba(74, 222, 128, 0.2);
+  border-color: #4ade80;
+  color: #4ade80;
+  box-shadow: 0 0 15px rgba(74, 222, 128, 0.4);
+  animation: pulsePowerUp 1s infinite alternate;
+}
+
+/* El círculo chiquito que muestra la cantidad disponible */
+.powerUpBadge {
+  position: absolute;
+  bottom: -4px;
+  right: -4px;
+  background: var(--md-primary);
+  color: var(--md-on-primary);
+  font-size: 0.65rem;
+  font-weight: bold;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* El borde del mismo color que el fondo del juego para simular un recorte */
+  border: 2px solid #3a5783; 
+}
+
+/* Para cuando cargues las imágenes reales (.png) */
+.powerUpIcon {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  pointer-events: none; /* Para que el clic pase directo al botón */
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+}
+
+@keyframes pulsePowerUp {
+  from { transform: scale(1); }
+  to { transform: scale(1.1); }
+}
