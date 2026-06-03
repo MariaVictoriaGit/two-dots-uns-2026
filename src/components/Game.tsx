@@ -27,12 +27,13 @@ function Game() {
   const [waiting, setWaiting] = useState(false);
 
   const [powerUps, setPowerUps] = useState<PowerUp[]>([
-    { id: 'mezclar', name: 'Mezclar', image: '/powerups/mezclar.png', count: 1 },
-    { id: 'borrador', name: 'borrador', image: '/powerups/borrador.png', count: 2 },
-    { id: 'borrar_color', name: 'Borrador', image: '/powerups/borrador.png', count: 3 },
-    { id: 'cruz', name: 'Láser Cruz', image: '/powerups/cruz.png', count: 2 } 
+    { id: 'mezclar', name: 'Mezclar', image: '/powerups/mezclar.png', count: 3 },
+    { id: 'borrador', name: 'borrar una bolita', image: '/powerups/borrador.png', count: 2 },
+    { id: 'borrar_color', name: 'borrar todo un un color', image: '/powerups/borrar_color.png', count: 1 },
+    { id: 'cruz', name: 'borrar en forma de cruz', image: '/powerups/cruz.png', count: 2 } 
   ]);
   const [activePowerUp, setActivePowerUp] = useState<PowerUpId | null>(null);
+  const [isExploding, setIsExploding] = useState(false);
 
   //este history no tocar tuto quema, es el coso para ver que hicimos en el pasado, no es el historial de movimientos, es el historial de estados del juego, para poder mostrar la animacion de los efectos, cada vez que se hace un movimiento se guarda el estado del juego antes de hacer el movimiento, y se muestra ese estado mientras se muestra la animacion de los efectos, y cuando termina la animacion se muestra el estado actual del juego
   const { grid: historyGrid, objectives: historyObjectives } = useHistory({ grid: grid!, objectives, waiting });
@@ -169,12 +170,12 @@ function Game() {
     for (let i = 0; i < effects.length; i++) {
       applyEffect(effects[i]);
       if (i < effects.length - 1) {
-        await delay(1000);
+        await delay(600);
       }
     }
     setWaiting(false);
   }
-
+  
   function applyEffect(effect: EffectTerm) {//va a venir un arreglo de efectos, cada uno con una grilla y una info de efecto, esta funcion aplica el efecto actual, que es actualizar la grilla y actualizar los objetivos logrados
     const [effectGrid, effectInfo] = effect.args;//esto va a hacer una lista con los dos argumentos grilla e informacion de efecto
     setGrid(effectGrid);//seteamos la grilla
@@ -311,13 +312,7 @@ function Game() {
             disabled={pu.count === 0 || waiting}
             title={pu.name}
           >
-            {/* Si queremos poner las imágenes: */}
-            {/* <img src={pu.image} alt={pu.name} className={styles.powerUpIcon} /> */}
-            
-            {/* Mientras uso de emojis: */}
-            <span style={{ fontSize: '24px', pointerEvents: 'none' }}>
-                {pu.id === 'borrar_color' ? '🪄' : pu.id === 'borrador' ? '🧽' : pu.id === 'cruz' ? '🎯' : '🔀'}
-            </span>
+            <img src={pu.image} alt={pu.name} className={styles.powerUpIcon} />
 
             <span className={styles.powerUpBadge}>{pu.count}</span>
           </button>
