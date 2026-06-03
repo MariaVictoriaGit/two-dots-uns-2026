@@ -27,7 +27,7 @@ function Game() {
   const [waiting, setWaiting] = useState(false);
 
   const [powerUps, setPowerUps] = useState<PowerUp[]>([
-   { id: 'mezclar', name: 'Mezclar', image: '/lib/imágenes/mezclar.png', count: 1 },
+    { id: 'mezclar', name: 'Mezclar', image: '/lib/imágenes/mezclar.png', count: 1 },
     { id: 'borrador', name: 'borrar una bolita', image: '/lib/imágenes/borrador.png', count: 2 },
     { id: 'borrar_color', name: 'borrar todo un un color', image: '/lib/imágenes/borrar_color.png', count: 3 },
     { id: 'cruz', name: 'borrar en forma de cruz', image: '/lib/imágenes/cruz.png', count: 2 } 
@@ -170,7 +170,21 @@ function Game() {
     for (let i = 0; i < effects.length; i++) {
       applyEffect(effects[i]);
       if (i < effects.length - 1) {
-        await delay(600);
+        const currentInfo = effects[i].args[1] as any[];
+        const nextInfo = effects[i + 1].args[1] as any[];
+        
+       const wasExplosion = currentInfo.includes('explosion');
+        const isNextExplosion = nextInfo.includes('explosion');
+        
+        if (isNextExplosion) {
+          // ENCIENDE EL FLASH ACÁ: Mientras las bombas todavía están visibles
+          setIsExploding(true);
+          await delay(450); // Delay cortísimo de anticipación
+        } else if (wasExplosion) {
+          await delay(500);
+        } else {
+          await delay(800);
+        }
       }
     }
     setWaiting(false);
@@ -179,6 +193,12 @@ function Game() {
   function applyEffect(effect: EffectTerm) {//va a venir un arreglo de efectos, cada uno con una grilla y una info de efecto, esta funcion aplica el efecto actual, que es actualizar la grilla y actualizar los objetivos logrados
     const [effectGrid, effectInfo] = effect.args;//esto va a hacer una lista con los dos argumentos grilla e informacion de efecto
     setGrid(effectGrid);//seteamos la grilla
+    const huboExplosion = effectInfo.includes('explosion' as any);
+    if (huboExplosion) {
+      setIsExploding(true);
+      setTimeout(() => setIsExploding(false), 500);
+    }
+
     effectInfo.forEach((effectInfoItem: EffectInfoTerm) => {
       const { functor, args } = effectInfoItem;
       switch (functor) {
@@ -297,14 +317,16 @@ function Game() {
           </div>
       )}
       {/* TABLERO */}
-      <Board
-        grid={historyGrid ?? grid}
-        numOfColumns={numOfColumns!}
-        path={path} //le paso camino
-        onPathChange={onPathChange} //que hacer cuando el jugdor avanza o retrocede en el camino
-        onDone={onPathDone} //el jugador solto el mouse, entonces se termina el camino
-        readonly={waiting || historyGrid !== undefined || showGameOver} 
-      />
+      <div className={`${styles.boardWrapper} ${isExploding ? styles.flashEffect : ''}`}>
+        <Board
+          grid={historyGrid ?? grid}
+          numOfColumns={numOfColumns!}
+          path={path} //le paso camino
+          onPathChange={onPathChange} //que hacer cuando el jugdor avanza o retrocede en el camino
+          onDone={onPathDone} //el jugador solto el mouse, entonces se termina el camino
+          readonly={waiting || historyGrid !== undefined || showGameOver} 
+        />
+      </div>
       {/* POWER-UPS */}
       <div className={styles.powerUpContainer}>
         {powerUps.map(pu => (
@@ -317,14 +339,10 @@ function Game() {
             disabled={pu.count === 0 || waiting}
             title={pu.name}
           >
-            {/* Si queremos poner las imágenes: */}
-            {/* <img src={pu.image} alt={pu.name} className={styles.powerUpIcon} /> */}
             
-            {/* Mientras uso de emojis: */}
-            <span style={{ fontSize: '24px', pointerEvents: 'none' }}>
-                {pu.id === 'borrar_color' ? '🪄' : pu.id === 'borrador' ? '🧽' : pu.id === 'cruz' ? '🎯' : '🔀'}
-            </span>
-
+            <img src={pu.image} alt={pu.name} className={styles.powerUpIcon} /> 
+            
+           
             <span className={styles.powerUpBadge}>{pu.count}</span>
           </button>
         ))}

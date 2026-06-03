@@ -4,9 +4,11 @@
   flex-direction: column;
   background: #3a5783;
   align-items: center;
-  min-height: 100vh;
-  padding: 40px 20px;
+  min-height: 100vh; 
+  padding: 40px 20px; 
+
 }
+
 
 /* contenedor del header */
 .header {
@@ -237,6 +239,8 @@
 .rightTop { top: 0; right: 0; }
 .rightBottom { bottom: 0; right: 0; }
 
+
+
 /* ========================================= */
 /* -------   POWER-UPS ------ */
 /* ========================================= */
@@ -328,4 +332,79 @@
 @keyframes pulsePowerUp {
   from { transform: scale(1); }
   to { transform: scale(1.1); }
+}
+
+/* ========================================= */
+/* --- DESTELLOS LOCALES DESDE LA BOMBA --- */
+/* ========================================= */
+
+/* Seleccionamos la bomba y la preparamos para el estallido */
+.flashEffect [class*="bomba"],
+.flashEffect img[src*="bomba"] {
+  position: relative;
+  /* Nueva animación: dura 0.45s y se queda en el estado final (forwards) */
+  animation: bombDetonate 0.45s cubic-bezier(0.36, 0, 0.66, -0.56) forwards;
+}
+
+/* Ondas de luz expansivas (rayos/anillos) */
+.flashEffect [class*="bomba"]::before,
+.flashEffect [class*="bomba"]::after {
+  content: '';
+  position: absolute;
+  /* Un pequeño margen negativo para que el anillo nazca más grande que la bomba */
+  inset: -4px; 
+  border-radius: 50%;
+  border: 4px solid #ffffff;
+  box-shadow: 0 0 25px #ea670a, inset 0 0 15px #ea670a;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Primera onda expansiva instantánea */
+.flashEffect [class*="bomba"]::before {
+  /* Dura un poco más (0.5s) para que el jugador vea cómo abarca las adyacentes */
+  animation: burstRay 0.5s ease-out forwards;
+}
+
+/* Segunda onda expansiva con delay para dar efecto tridimensional */
+.flashEffect [class*="bomba"]::after {
+  animation: burstRay 0.5s ease-out 0.1s forwards;
+}
+
+/* --- ANIMACIÓN 1: LA BOMBA CRECE Y REVIENTA --- */
+@keyframes bombDetonate {
+  0% { 
+    transform: scale(1); 
+    filter: brightness(1); 
+  }
+  50% { 
+    /* Se hincha y tiembla un poquito */
+    transform: scale(1.6) translate(1px, -1px); 
+    filter: brightness(2) drop-shadow(0 0 15px #ea670a); 
+    opacity: 1;
+  }
+  80% {
+    transform: scale(1.8) translate(-1px, 1px);
+    opacity: 0.8;
+  }
+  100% { 
+    /* Estalla gigante y se desvanece */
+    transform: scale(2.5); 
+    filter: brightness(3); 
+    opacity: 0; 
+  }
+}
+
+/* --- ANIMACIÓN 2: LA ONDA LLEGA A LOS ADYACENTES --- */
+@keyframes burstRay {
+  0% {
+    transform: scale(0.5);
+    opacity: 1;
+    border-width: 10px; /* Borde grueso al inicio */
+  }
+  100% {
+    transform: scale(6); /* Escala gigante para cubrir el 3x3 de adyacentes */
+    opacity: 0;          /* Se disipa */
+    border-width: 0px;   /* El anillo se vuelve fino hasta desaparecer */
+  }
 }

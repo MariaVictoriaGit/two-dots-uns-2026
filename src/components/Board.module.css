@@ -4,8 +4,8 @@
 
 .cells {
     display: grid;
-    grid-template-columns: repeat(var(--num-columns), 30px);
-    grid-template-rows: repeat(var(--num-rows), 30px);
+    grid-template-columns: repeat(var(--num-columns), 35px);
+    grid-template-rows: repeat(var(--num-rows), 35px);
 }
 
 .horizontalConnectors {
@@ -13,8 +13,8 @@
     top: 0;
     margin: 0 15px;
     display: grid;
-    grid-template-columns: repeat(calc(var(--num-columns) - 1), 30px);
-    grid-template-rows: repeat(var(--num-rows), 30px);
+    grid-template-columns: repeat(calc(var(--num-columns) - 1), 35px);
+    grid-template-rows: repeat(var(--num-rows), 35px);
 }
 
 .verticalConnectors {
@@ -22,6 +22,6 @@
     top: 0;
     margin: 15px 0;
     display: grid;
-    grid-template-columns: repeat(var(--num-columns), 30px);
-    grid-template-rows: repeat(calc(var(--num-rows) - 1), 30px);
+    grid-template-columns: repeat(var(--num-columns), 35px);
+    grid-template-rows: repeat(calc(var(--num-rows) - 1), 35px);
 }
