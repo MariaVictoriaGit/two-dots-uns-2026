@@ -27,10 +27,10 @@ function Game() {
   const [waiting, setWaiting] = useState(false);
 
   const [powerUps, setPowerUps] = useState<PowerUp[]>([
-    { id: 'mezclar', name: 'Mezclar', image: '/powerups/mezclar.png', count: 1 },
-    { id: 'borrador', name: 'borrador', image: '/powerups/borrador.png', count: 2 },
-    { id: 'borrar_color', name: 'Borrador', image: '/powerups/borrador.png', count: 3 },
-    { id: 'cruz', name: 'Láser Cruz', image: '/powerups/cruz.png', count: 2 } 
+    { id: 'mezclar', name: 'Mezclar', image: '/lib/imágenes/mezclar.png', count: 1 },
+    { id: 'borrador', name: 'borrador', image: '/lib/imágenes/borrador.png', count: 2 },
+    { id: 'borrar_color', name: 'Borrador', image: '/lib/imágenes/borrar_color.png', count: 3 },
+    { id: 'cruz', name: 'Láser Cruz', image: '/lib/imágenes/cruz.png', count: 2 } 
   ]);
   const [activePowerUp, setActivePowerUp] = useState<PowerUpId | null>(null);
 
@@ -311,14 +311,7 @@ function Game() {
             disabled={pu.count === 0 || waiting}
             title={pu.name}
           >
-            {/* Si queremos poner las imágenes: */}
-            {/* <img src={pu.image} alt={pu.name} className={styles.powerUpIcon} /> */}
-            
-            {/* Mientras uso de emojis: */}
-            <span style={{ fontSize: '24px', pointerEvents: 'none' }}>
-                {pu.id === 'borrar_color' ? '🪄' : pu.id === 'borrador' ? '🧽' : pu.id === 'cruz' ? '🎯' : '🔀'}
-            </span>
-
+            <img src={pu.image} alt={pu.name} className={styles.powerUpIcon} />
             <span className={styles.powerUpBadge}>{pu.count}</span>
           </button>
         ))}
