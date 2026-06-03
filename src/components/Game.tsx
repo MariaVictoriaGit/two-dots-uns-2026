@@ -3,7 +3,7 @@ import PengineClient from '../services/PengineClient';
 import Board from './Board';
 import { delay } from './util';
 import styles from './Game.module.css';
-import { CellContent, Grid, Objectives, EffectTerm, EffectInfoTerm, colors, colorToCss } from './model';
+import { CellContent, Grid, Objectives, EffectTerm, EffectInfoTerm, colors, colorToCss, colorToImage } from './model';
 import { useHistory, checkIsPathClosed } from './helpers';
 
 type PowerUpId = 'borrar_color' | 'borrador' | 'mezclar' | 'cruz';
@@ -27,10 +27,10 @@ function Game() {
   const [waiting, setWaiting] = useState(false);
 
   const [powerUps, setPowerUps] = useState<PowerUp[]>([
-    { id: 'mezclar', name: 'Mezclar', image: '/powerups/mezclar.png', count: 3 },
-    { id: 'borrador', name: 'borrar una bolita', image: '/powerups/borrador.png', count: 2 },
-    { id: 'borrar_color', name: 'borrar todo un un color', image: '/powerups/borrar_color.png', count: 1 },
-    { id: 'cruz', name: 'borrar en forma de cruz', image: '/powerups/cruz.png', count: 2 } 
+   { id: 'mezclar', name: 'Mezclar', image: '/lib/imágenes/mezclar.png', count: 1 },
+    { id: 'borrador', name: 'borrar una bolita', image: '/lib/imágenes/borrador.png', count: 2 },
+    { id: 'borrar_color', name: 'borrar todo un un color', image: '/lib/imágenes/borrar_color.png', count: 3 },
+    { id: 'cruz', name: 'borrar en forma de cruz', image: '/lib/imágenes/cruz.png', count: 2 } 
   ]);
   const [activePowerUp, setActivePowerUp] = useState<PowerUpId | null>(null);
   const [isExploding, setIsExploding] = useState(false);
@@ -250,14 +250,19 @@ function Game() {
             return (
               <div key={key} className={styles.objectiveItem} data-completed={Number(value) <= 0}>
                 {isCol ? (
-                  <div
+                  <img 
+                    src={colorToImage(key as CellContent)} 
+                    alt={key} 
                     className={styles.objectiveDot}
-                    style={{ backgroundColor: colorToCss(key as CellContent) }}
+                    style={{ width: '24px', height: '24px', objectFit: 'cover' }}
                   />
                 ) : key === '~' ? (
-                  <span className={`material-symbols-outlined ${styles.objectiveWater}`}>
-                    water_drop
-                  </span>
+                  <img 
+                    src="/lib/imágenes/agua.png" 
+                    alt="agua" 
+                    className={styles.objectiveDot}
+                    style={{ width: '24px', height: '24px', objectFit: 'cover' }}
+                  />
                 ) : (
                   <span className={styles.objectiveText}>{key}</span>
                 )}
@@ -312,7 +317,13 @@ function Game() {
             disabled={pu.count === 0 || waiting}
             title={pu.name}
           >
-            <img src={pu.image} alt={pu.name} className={styles.powerUpIcon} />
+            {/* Si queremos poner las imágenes: */}
+            {/* <img src={pu.image} alt={pu.name} className={styles.powerUpIcon} /> */}
+            
+            {/* Mientras uso de emojis: */}
+            <span style={{ fontSize: '24px', pointerEvents: 'none' }}>
+                {pu.id === 'borrar_color' ? '🪄' : pu.id === 'borrador' ? '🧽' : pu.id === 'cruz' ? '🎯' : '🔀'}
+            </span>
 
             <span className={styles.powerUpBadge}>{pu.count}</span>
           </button>

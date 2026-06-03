@@ -1,5 +1,5 @@
 import React from 'react';
-import { CellContent, colorToCss } from "./model";
+import { CellContent, colorToImage } from "./model";
 import styles from "./Cell.module.css";
 
 
@@ -37,7 +37,12 @@ function Cell({ value, onMouseEnter, onMouseDown, waterNeighbors }: CellProps) {
                     onMouseEnter={onMouseEnter}
                     key={cellContent}
                 >
-                    <div style={{ backgroundColor: colorToCss(cellContent) }} />
+                    <img 
+                        src={colorToImage(cellContent)} 
+                        alt={cellContent} 
+                        draggable={false}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', userSelect: 'none', pointerEvents: 'none' }} 
+                    />
                 </button>
             );
         }
