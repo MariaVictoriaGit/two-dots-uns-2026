@@ -3,7 +3,7 @@ import PengineClient from '../services/PengineClient';
 import Board from './Board';
 import { delay } from './util';
 import styles from './Game.module.css';
-import { CellContent, Grid, Objectives, EffectTerm, EffectInfoTerm, colors, colorToCss } from './model';
+import { CellContent, Grid, Objectives, EffectTerm, EffectInfoTerm, colors, colorToCss, colorToImage } from './model';
 import { useHistory, checkIsPathClosed } from './helpers';
 
 type PowerUpId = 'borrar_color' | 'borrador' | 'mezclar' | 'cruz';
@@ -249,14 +249,19 @@ function Game() {
             return (
               <div key={key} className={styles.objectiveItem} data-completed={Number(value) <= 0}>
                 {isCol ? (
-                  <div
+                  <img 
+                    src={colorToImage(key as CellContent)} 
+                    alt={key} 
                     className={styles.objectiveDot}
-                    style={{ backgroundColor: colorToCss(key as CellContent) }}
+                    style={{ width: '24px', height: '24px', objectFit: 'cover' }}
                   />
                 ) : key === '~' ? (
-                  <span className={`material-symbols-outlined ${styles.objectiveWater}`}>
-                    water_drop
-                  </span>
+                  <img 
+                    src="/lib/imágenes/agua.png" 
+                    alt="agua" 
+                    className={styles.objectiveDot}
+                    style={{ width: '24px', height: '24px', objectFit: 'cover' }}
+                  />
                 ) : (
                   <span className={styles.objectiveText}>{key}</span>
                 )}

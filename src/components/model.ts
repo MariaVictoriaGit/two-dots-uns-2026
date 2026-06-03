@@ -14,6 +14,18 @@ export function colorToCss(color: typeof colors[number]): string {
     }
 }
 
+export function colorToImage(color: typeof colors[number]): string {
+    switch (color) {
+        case "r": return "/lib/imágenes/rojo.png";
+        case "c": return "/lib/imágenes/azul.png";
+        case "g": return "/lib/imágenes/verde.png";
+        case "p": return "/lib/imágenes/violeta.png";
+        case "y": return "/lib/imágenes/amarillo.png";
+        case "b": return "/lib/imágenes/bomba.png";
+        default: return "";
+    }
+}
+
 export type CellContent = (typeof colors[number]) | "-" | "~";
 
 export type Grid = CellContent[][];
