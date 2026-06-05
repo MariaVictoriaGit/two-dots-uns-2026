@@ -1,0 +1,124 @@
+.menuContainer {
+  display: flex;
+  flex-direction: column;
+  background: #3a5783;
+  align-items: center;
+  min-height: 100vh;
+  padding: 60px 20px;
+  box-sizing: border-box;
+  overflow-y: auto; 
+  height: 100vh; 
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 60px;
+}
+
+.title {
+  color: #ffffff;
+  font-size: 3rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  margin: 0 0 8px 0;
+  text-transform: uppercase;
+}
+
+.title span {
+  color: #fecd6c; /* Tono pastel del juego */
+}
+
+.subtitle {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.95rem;
+  font-weight: 500;
+  margin: 0;
+}
+
+/* Distribución del camino de niveles */
+.mapPath {
+  display: flex;
+  flex-direction: column-reverse; /* Los niveles suben, típico de mapas mecánicos */
+  gap: 70px;
+  width: 100%;
+  max-width: 320px;
+  position: relative;
+}
+
+.levelNodeWrapper {
+  position: relative;
+  display: flex;
+  width: 100%;
+}
+
+/* Alineaciones alternadas para el zig-zag */
+.leftAlign { justify-content: flex-start; }
+.rightAlign { justify-content: flex-end; }
+
+/* El botón circular del nivel */
+.levelButton {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 2;
+}
+
+/* Estados desbloqueados (Estilo pastel interactivo) */
+.levelButton[data-unlocked="true"] {
+  background-color: #2cac75; /* Cambia dinámicamente si querés por nivel */
+  color: #ffffff;
+}
+
+.levelButton[data-unlocked="true"]:hover {
+  transform: scale(1.12);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.25);
+  background-color: #34be84;
+}
+
+/* Estados bloqueados */
+.levelButton[data-unlocked="false"] {
+  background-color: rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.4);
+  cursor: not-allowed;
+  backdrop-filter: blur(5px);
+  box-shadow: none;
+}
+
+.levelNumber {
+  font-size: 1.3rem;
+  font-weight: 800;
+}
+
+/* Líneas conectoras punteadas */
+.connectorLine {
+  position: absolute;
+  width: 140px;
+  height: 90px;
+  border: 3px dashed rgba(255, 255, 255, 0.25);
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Curvas o diagonales simuladas para conectar el zig-zag */
+.lineRight {
+  top: -75px;
+  left: 45px;
+  border-bottom: none;
+  border-left: none;
+  border-top-right-radius: 40px;
+}
+
+.lineLeft {
+  top: -75px;
+  right: 45px;
+  border-bottom: none;
+  border-right: none;
+  border-top-left-radius: 40px;
+}

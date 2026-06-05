@@ -1,4 +1,4 @@
-:- module(init, [ init/4 ]).
+:- module(init, [ init/4, init_level/5 ]).
 
 /**
  * init(-Grid, -NumOfColumns, -Goals, -Moves).
@@ -18,7 +18,7 @@
  * - = obstáculo (celda no jugable)
  * ~ = agua
  */
-/*
+
 init([
 	% Fila 0 (índices 0-7)
 	[-], [r], [c], [p], [-], [-], [-], [-],
@@ -27,29 +27,122 @@ init([
 	% Fila 2 (índices 16-23)
 	[r], [r], [g], [y], [r], [g], [-], [-],
 	% Fila 3 (índices 24-31)
-	[y], [c], [-], [y], [c], [c], [c], [-],
+	[y], [c], [-], [y], [p], [p], [p], [-],
 	% Fila 4 (índices 32-39)
-	[y, ~], [c, ~], [-], [c], [c, ~], [y, ~], [c, ~], [c],
+	[y, ~], [c, ~], [-], [p], [p, ~], [y, ~], [p, ~], [p],
 	% Fila 5 (índices 40-47)
-	[c, ~], [c, ~], [-], [c, ~], [c, ~], [c, ~], [c, ~], [-],
+	[c, ~], [c, ~], [-], [p, ~], [p, ~], [p, ~], [p, ~], [-],
 	% Fila 6 (índices 48-55)
-	[c, ~], [y, ~], [g, ~], [c, ~], [c, ~], [c, ~], [-], [-],
+	[c, ~], [y, ~], [g, ~], [p, ~], [p, ~], [p, ~], [-], [-],
 	% Fila 7 (índices 56-63)
 	[c, ~], [y, ~], [y, ~], [y, ~], [y, ~], [-], [-], [-],
 	% Fila 8 (índices 64-71)
 	[-], [y, ~], [y, ~], [y], [-], [-], [-], [-]
 ], 8, [[r, 10], [g, 10], [p, 15], [~, 21]], 35).
-*/
+
+
+init_level(1, Grid, Cols, Goals, Moves) :- 
+    init(Grid, Cols, Goals, Moves).
+% Nivel 2: Tablero 5x5 con obstáculos centrales. 3 colores.
+init_level(2, [
+    [g], [g], [g], [g], [g], [g], [g], [g],
+    [g], [y], [y], [y], [c], [g], [~], [g],
+    [g], [y], [p], [y], [c], [g], [g], [g],
+    [g], [y], [y], [y], [c], [r], [r], [g],
+    [g], [p], [p], [p], [p], [r], [~], [g],
+    [g], [-], [-], [-], [p], [r], [r], [g],
+    [g], [-], [c,~], [-], [p], [c], [c], [g],
+    [g], [-], [-], [-], [p], [c], [g], [g],
+    [g], [g], [g], [g], [g], [g], [g], [g]
+], 8, [[g,20],[r,10],[p,15],[~,5]], 30).
+
+% Nivel 3: Tablero 6x6 con agua en la base. 4 colores.
+init_level(3, [
+    [y], [p], [r], [g], [y], [p],
+    [g], [y], [p], [r], [p], [g],
+    [r], [g], [y], [p], [r], [y],
+    [p], [r], [g], [y], [g], [r],
+    [y, ~], [p, ~], [r, ~], [g, ~], [y, ~], [p, ~],
+    [g, ~], [y, ~], [p, ~], [r, ~], [p, ~], [g, ~]
+], 6, [[~, 10], [r, 12], [y, 12]], 18).
+
+% Nivel 4: Tablero 6x6 diseñado para incentivar cerrar cuadrados y crear bombas.
+init_level(4, [
+    [c], [c], [c], [y], [p], [r],
+    [c], [r], [c], [g], [y], [p],
+    [c], [c], [c], [r], [g], [y],
+    [y], [p], [r], [g], [y], [c],
+    [g], [y], [p], [g], [g], [p],
+    [r], [g], [p], [p], [r], [y]
+], 6, [[g, 15], [c, 15], [p, 10]], 20).
 /*
 init([
     [r], [g],
     [y], [c]
 ], 2, [[r, 5]], 15).*/
 
-/* Caso para probar el deadlock (sin movimientos posibles) */
+/* Caso para probar el deadlock (sin movimientos posibles) 
 init([
     [p], [p], [r], [g],
     [y], [c], [y], [c],
     [r], [g], [r], [g],
     [y], [c], [y], [c]
-], 4, [[p, 2], [r, 10]], 15).
+], 4, [[p, 2], [r, 10]], 15).*/
+init_level(N, Grid, Cols, Goals, Moves) :-
+    N > 4,
+    
+    % 1. Tamaño dinámico controlado (Max 10 columnas para cuidar el layout UI)
+    Cols is min(10, 4 + (N // 2)),
+    Rows is min(10, 5 + (N // 2)),
+    TotalCells is Cols * Rows,
+    
+    % 2. Movimientos escalables según el nivel
+    Moves is 15 + (N * 2),
+    
+    % 3. Selección de paleta de colores para este nivel
+    % (Evitamos usar los 5 colores juntos para garantizar que haya conexiones posibles)
+    colores_jugables(ColoresDelNivel),
+    
+    % 4. Rellenar la grilla usando probabilidades matemáticas
+    generar_celdas(TotalCells, ColoresDelNivel, Grid),
+    
+    % 5. Objetivos dinámicos: Cazar 2 colores y expandir agua
+    TargetColor is 15 + N,
+    TargetAgua is 5 + (N // 2),
+    nth0(0, ColoresDelNivel, C1),
+    nth0(1, ColoresDelNivel, C2),
+    Goals = [[C1, TargetColor], [C2, TargetColor], [~, TargetAgua]].
+
+% --- Lógica de Selección de Paleta ---
+colores_jugables(Seleccionados) :-
+    % Mezclamos los colores disponibles (sin la 'b' de bomba)
+    random_permutation([r, c, g, p, y], Mezclados),
+    % Cortamos la lista para jugar solo con 4 colores y que sea divertido
+    length(Seleccionados, 4),
+    append(Seleccionados, _, Mezclados).
+
+% --- Bucle generador de celdas ---
+generar_celdas(0, _, []) :- !.
+generar_celdas(Cantidad, ColoresDelNivel, [Celda|Resto]) :-
+    Cantidad > 0,
+    % Tiramos un dado del 0 al 100 para aplicar distribución de probabilidad
+    random(0, 100, Dado),
+    asignar_tipo_celda(Dado, ColoresDelNivel, Celda),
+    CantNueva is Cantidad - 1,
+    generar_celdas(CantNueva, ColoresDelNivel, Resto).
+
+% --- Distribución de Probabilidades ---
+
+% 1. OBSTÁCULOS (5% de chance: Dado cae entre 0 y 4)
+asignar_tipo_celda(Dado, _, [-]) :- 
+    Dado < 5, !.
+
+% 2. AGUA (10% de chance: Dado cae entre 5 y 14)
+asignar_tipo_celda(Dado, ColoresDelNivel, [Color, ~]) :- 
+    Dado >= 5, Dado < 15, !,
+    random_member(Color, ColoresDelNivel).
+
+% 3. CELDA NORMAL (85% de chance: Dado cae entre 15 y 99)
+asignar_tipo_celda(Dado, ColoresDelNivel, [Color]) :- 
+    Dado >= 15,
+    random_member(Color, ColoresDelNivel).

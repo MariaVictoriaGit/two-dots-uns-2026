@@ -5,6 +5,7 @@ import { delay } from './util';
 import styles from './Game.module.css';
 import { CellContent, Grid, Objectives, EffectTerm, EffectInfoTerm, colors, colorToCss, colorToImage } from './model';
 import { useHistory, checkIsPathClosed } from './helpers';
+import LevelSelector from './LevelSelector';
 
 type PowerUpId = 'borrar_color' | 'borrador' | 'mezclar' | 'cruz';
 
@@ -16,6 +17,11 @@ interface PowerUp {
 }
 
 function Game() {
+  const [currentScreen, setCurrentScreen] = useState<'menu' | 'playing'>('menu');
+  const [levelId, setLevelId] = useState<number>(1);
+  const [isPaused, setIsPaused] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [maxUnlockedLevel, setMaxUnlockedLevel] = useState<number>(1);
   // State
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [pengine, setPengine] = useState<any>(null);
@@ -40,7 +46,7 @@ function Game() {
 
   const initGame = useCallback(async () => {
     if (!pengine) return;
-    const queryS = 'init(Grid, NumOfColumns, Goals, Moves)';
+    const queryS = `init_level(${levelId}, Grid, NumOfColumns, Goals, Moves)`;
     const response = await pengine.query(queryS);
     setGrid(response['Grid']);
     setNumOfColumns(response['NumOfColumns']);
@@ -50,7 +56,7 @@ function Game() {
       objectives[block] = value;
     });
     setObjectives(objectives);
-  }, [pengine]);
+  }, [pengine, levelId]);
 
   useEffect(() => {
     // Esto se ejecuta solo una vez, después del primer renderizado.
@@ -61,12 +67,12 @@ function Game() {
   }, []);
 
   useEffect(() => {
-    if (pengine) {
-      // Esto se ejecuta después de que pengine se haya establecido
+    if (pengine && currentScreen === 'playing') {
+      // Esto se ejecuta después de que pengine se haya establecido Y elegimos jugar
       // eslint-disable-next-line react-hooks/set-state-in-effect
       initGame();
     }
-  }, [pengine, initGame]);
+  }, [pengine, currentScreen, initGame]);
 
   /**
    * Llamado mientras el usuario está dibujando un camino en la cuadrícula, cada vez que el camino cambia.
@@ -230,6 +236,19 @@ function Game() {
   if (!pengine) {
     return null;
   }
+  
+  if (currentScreen === 'menu') {
+    return (
+      <LevelSelector 
+      maxUnlockedLevel={maxUnlockedLevel}
+        onSelectLevel={(id) => {
+          setLevelId(id);
+          setGrid(null); // Limpiamos la grilla vieja para forzar recarga
+          setCurrentScreen('playing');
+        }} 
+      />
+    );
+  }
 
   if (grid === null) {
     return null;
@@ -261,42 +280,53 @@ function Game() {
   // -----------------------------------
   return (
     <div className={styles.game} style={{ '--num-columns': numOfColumns } as React.CSSProperties}>
-      {/* HEADER: Solo Movimientos y Objetivos */}
-      <div className={styles.header}>
-        <div className={styles.movesGroup}>
-          <span className={styles.movesLabel}>MOVES</span>
-          <strong className={styles.movesValue}>{moves}</strong>
-        </div>
+      <div className={styles.headerContainer}>
         
-        <div className={styles.divider} />
-        
-        <div className={styles.objectivesGroup}>
-          {Object.entries(historyObjectives ?? objectives).map(([key, value]) => {
-            const isCol = colors.includes(key);
-            return (
-              <div key={key} className={styles.objectiveItem} data-completed={Number(value) <= 0}>
-                {isCol ? (
-                  <img 
-                    src={colorToImage(key as CellContent)} 
-                    alt={key} 
-                    className={styles.objectiveDot}
-                    style={{ width: '24px', height: '24px', objectFit: 'cover' }}
-                  />
-                ) : key === '~' ? (
-                  <img 
-                    src="/lib/imágenes/agua.png" 
-                    alt="agua" 
-                    className={styles.objectiveDot}
-                    style={{ width: '24px', height: '24px', objectFit: 'cover' }}
-                  />
-                ) : (
-                  <span className={styles.objectiveText}>{key}</span>
-                )}
-                <span className={styles.objectiveValue}>{value}</span>
-              </div>
-            );
-          })}
+        {/* BOTÓN DE PAUSA CON SVG DIBUJADO A MANO */}
+        <button className={styles.pauseBtn} onClick={() => setIsPaused(true)} title="Pausa">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="6" y="4" width="4" height="16"></rect>
+            <rect x="14" y="4" width="4" height="16"></rect>
+          </svg>
+        </button>
+        {/* HEADER: Solo Movimientos y Objetivos */}
+        <div className={styles.header}>
+          <div className={styles.movesGroup}>
+            <span className={styles.movesLabel}>MOVES</span>
+            <strong className={styles.movesValue}>{moves}</strong>
+          </div>
+          
+          <div className={styles.divider} />
+          
+          <div className={styles.objectivesGroup}>
+            {Object.entries(historyObjectives ?? objectives).map(([key, value]) => {
+              const isCol = colors.includes(key);
+              return (
+                <div key={key} className={styles.objectiveItem} data-completed={Number(value) <= 0}>
+                  {isCol ? (
+                    <img 
+                      src={colorToImage(key as CellContent)} 
+                      alt={key} 
+                      className={styles.objectiveDot}
+                      style={{ width: '24px', height: '24px', objectFit: 'cover' }}
+                    />
+                  ) : key === '~' ? (
+                    <img 
+                      src="/lib/imágenes/agua.png" 
+                      alt="agua" 
+                      className={styles.objectiveDot}
+                      style={{ width: '24px', height: '24px', objectFit: 'cover' }}
+                    />
+                  ) : (
+                    <span className={styles.objectiveText}>{key}</span>
+                  )}
+                  <span className={styles.objectiveValue}>{value}</span>
+                </div>
+              );
+            })}
+          </div>
         </div>
+        <div style={{ width: '40px' }} /> {/* Espaciador para centrar */}
       </div>
       {/* CAPA DE ANIMACIÓN DE BORDES */}
       {path.length > 0 && (
@@ -333,6 +363,7 @@ function Game() {
           readonly={waiting || historyGrid !== undefined || showGameOver} 
         />
       </div>
+
       {/* POWER-UPS */}
       <div className={styles.powerUpContainer}>
         {powerUps.map(pu => (
@@ -353,22 +384,79 @@ function Game() {
           </button>
         ))}
       </div>  
+
       {/* MODAL DE VICTORIA/DERROTA */}
-      {showGameOver && (
+      {(showGameOver || isPaused) && (
         <div className={styles.gameOverOverlay}>
           <div className={styles.gameOverModal}>
-            <div className={isVictory ? styles.victoryText : styles.defeatText}>
-              {isVictory ? '¡VICTORIA!' : '¡DERROTA!'}
-            </div>
             
-            <button className={styles.replayButton} onClick={() => {
-              setGrid(null);
-              setMoves(null);
-              setObjectives({});
-              initGame();
-            }}>
-              JUGAR DE NUEVO
-            </button>
+            {/* Título Dinámico */}
+            {isPaused ? (
+              <div className={styles.pauseText}>PAUSA</div>
+            ) : isVictory ? (
+              <div className={styles.victoryText}>¡VICTORIA!</div>
+            ) : (
+              <div className={styles.defeatText}>¡DERROTA!</div>
+            )}
+            
+            {/* Botones Dinámicos */}
+            <div className={styles.modalButtons}>
+              
+              {/* BOTONES DE PAUSA */}
+              {isPaused && (
+                <>
+                  <button className={styles.primaryButton} onClick={() => setIsPaused(false)}>REANUDAR</button>
+                  <button className={styles.secondaryButton} onClick={() => setIsMuted(!isMuted)}>
+                    {isMuted ? '🎵 ACTIVAR SONIDO' : '🔇 MUTEAR SONIDO'}
+                  </button>
+                </>
+              )}
+
+              {/* BOTONES DE VICTORIA */}
+              {isVictory && !isPaused && (
+                <button className={styles.primaryButton} onClick={() => {
+                  // 1. Calculamos el siguiente nivel y el candado
+                  setLevelId(prevLevel => {
+                    const nextId = prevLevel + 1;
+                    setMaxUnlockedLevel(prevMax => nextId > prevMax ? nextId : prevMax);
+                    return nextId;
+                  });
+                  
+                  // 2. Limpiamos la pantalla
+                  setGrid(null);
+                  setMoves(null);
+                  setObjectives({});
+                  
+                  // 3. ¡La solución más simple! Llamamos a Prolog directo.
+                  initGame(); 
+                }}>SIGUIENTE NIVEL</button>
+              )}
+
+              {/* BOTONES DE DERROTA */}
+              {isDefeat && !isPaused && (
+                <button className={styles.primaryButton} onClick={() => {
+                  // Limpiamos la pantalla
+                  setGrid(null);
+                  setMoves(null);
+                  setObjectives({});
+                  
+                  // Reiniciamos el mismo nivel
+                  initGame();
+                }}>VOLVER A INTENTAR</button>
+              )}
+
+              {/* BOTÓN UNIVERSAL: VOLVER AL MENÚ */}
+              <button className={styles.secondaryButton} onClick={() => {
+                setGrid(null);
+                setMoves(null);
+                setObjectives({});
+                setIsPaused(false);
+                setCurrentScreen('menu'); // Chau tablero, hola menú
+              }}>
+                MENÚ PRINCIPAL
+              </button>
+
+            </div>
           </div>
         </div>
       )}

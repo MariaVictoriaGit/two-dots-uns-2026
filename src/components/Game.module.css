@@ -408,3 +408,112 @@
     border-width: 0px;   /* El anillo se vuelve fino hasta desaparecer */
   }
 }
+
+/* ========================================= */
+/* --- NUEVOS ESTILOS PARA MENÚ Y PAUSA --- */
+/* ========================================= */
+
+/* Contenedor principal del header para que convivan el botón de pausa y el marcador */
+.headerContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  max-width: 500px; 
+  margin-bottom: 32px;
+  z-index: 10;
+}
+
+/* El botón de pausa flotante */
+.pauseBtn {
+  position: absolute; 
+  top: 24px;
+  right: 24px;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;  
+  height: 48px;
+  border-radius: 50%;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 0;
+  z-index: 100;
+}
+
+.pauseBtn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  transform: scale(1.1);
+}
+
+/* Tamaño del icono de pausa de Material Design */
+.pauseBtn span {
+  font-size: 2.5rem;
+}
+
+
+.pauseText {
+  color: #ffffff;
+  margin: 0;
+  font-size: 2.2rem;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* Agrupador de la botonera del modal (Siguiente, Volver, Menú) */
+.modalButtons {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  margin-top: 8px;
+}
+
+/* Botón principal (Lleno, para la acción positiva: Siguiente / Reanudar / Reintentar) */
+.primaryButton {
+  width: 100%;
+  padding: 14px 24px;
+  font-size: 1rem;
+  font-weight: 800;
+  font-family: var(--font-family);
+  background-color: var(--md-primary);
+  color: var(--md-on-primary);
+  border: none;
+  border-radius: 100px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.primaryButton:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.1);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+}
+
+/* Botón secundario (Transparente con borde, para las acciones neutras: Ir al menú / Mutear) */
+.secondaryButton {
+  width: 100%;
+  padding: 12px 24px;
+  font-size: 0.95rem;
+  font-weight: 800;
+  font-family: var(--font-family);
+  background-color: transparent;
+  color: rgba(255, 255, 255, 0.9); /* Blanco semitransparente para no competir con el primario */
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 100px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.secondaryButton:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.6);
+  transform: translateY(-2px);
+}
