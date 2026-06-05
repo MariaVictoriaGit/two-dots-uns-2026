@@ -197,12 +197,14 @@ eliminacion_simple(Grid, Path, NumOfColumns, Color, Cantidad, Effects) :-
     eliminar_path(GridConAgua, Path, GridPreGravedad),
       
     length(NuevosAgua, CantidadAgua),
-    gravedad(GridPreGravedad, NumOfColumns, GridFinal),
+    gravedad(GridPreGravedad, NumOfColumns, TempFinal),
         
-    Effects = [
+    BaseEffects = [
         effect(GridPreGravedad, [achieved([[Color, Cantidad], [~, CantidadAgua]])]),
-        effect(GridFinal, [cae])
-    ].
+        effect(TempFinal, [cae])
+    ],
+
+    juntar_efectos_con_mezcla(TempFinal, NumOfColumns, BaseEffects, Effects).
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -678,11 +680,13 @@ usar_powerup(borrar_color, Grid, NumOfColumns, [TargetIdx], Effects) :-
     color_en(Grid, TargetIdx, Color),
     eliminar_color(Grid, [TargetIdx], NumOfColumns, Color, GridPreGravedad, CantidadRealColor, NuevosAgua),
     length(NuevosAgua, CantidadAgua),
-    gravedad(GridPreGravedad, NumOfColumns, GridFinal),
-    Effects = [
+    gravedad(GridPreGravedad, NumOfColumns, TempFinal),
+    BaseEffects = [
         effect(GridPreGravedad, [achieved([[Color, CantidadRealColor], [~, CantidadAgua]])]),
-        effect(GridFinal, [cae])
-    ].
+        effect(TempFinal, [cae])
+    ],
+    % Enviamos a chequear deadlock por si borrar este color rompió el tablero
+    juntar_efectos_con_mezcla(TempFinal, NumOfColumns, BaseEffects, Effects).
 
 % Borrar una sola ficha con un borrador
 usar_powerup(borrador, Grid, NumOfColumns, [TargetIdx], Effects) :-
@@ -694,34 +698,35 @@ usar_powerup(borrador, Grid, NumOfColumns, [TargetIdx], Effects) :-
 
 % Romper la fila y columna de una ficha (Cruz)
 usar_powerup(cruz, Grid, NumOfColumns, [TargetIdx], Effects) :-
-
     indices_en_cruz(TargetIdx, NumOfColumns,  Grid, PathCruz),
-
     contar_colores_destruidos(Grid, PathCruz, AchievedBase),
-
     expandir_agua_en_jugada(Grid, PathCruz, NumOfColumns, IndicesAgua),
     aplicar_agua_a_grilla(Grid, IndicesAgua, GridConAgua, NuevosAgua),
     eliminar_path(GridConAgua, PathCruz, GridPreGravedad),
     length(NuevosAgua, CantidadAgua),
-
     (CantidadAgua > 0 ->
         append(AchievedBase, [[~, CantidadAgua]], AchievedFinal)
     ;
         AchievedFinal = AchievedBase
     ),
-    
-    gravedad(GridPreGravedad, NumOfColumns, GridFinal),
-    Effects = [
+    gravedad(GridPreGravedad, NumOfColumns, TempFinal),
+    BaseEffects = [
         effect(GridPreGravedad, [achieved(AchievedFinal)]),
-        effect(GridFinal, [cae])
-    ].
+        effect(TempFinal, [cae])
+    ],
+    % Enviamos a chequear deadlock
+    juntar_efectos_con_mezcla(TempFinal, NumOfColumns, BaseEffects, Effects).
 
 % Mezclar todo el tablero 
 usar_powerup(mezclar, Grid, NumOfColumns, _, Effects) :-
     mezclar_grilla_segura(Grid, NumOfColumns, ShuffledGrid),
-    Effects = [
-        effect(ShuffledGrid, [])
-    ].
+    % Verificamos cómo quedó después del intento de mezcla
+    ( hay_movimientos(ShuffledGrid, NumOfColumns) ->
+        Effects = [ effect(ShuffledGrid, []) ]
+    ;
+        % Si ni siquiera la mezcla lo salvó, forzamos la muerte de la partida
+        Effects = [ effect(ShuffledGrid, [deadlock]) ]
+    ).
 
 % indices_en_cruz(+TargetIdx, +NumOfColumns, +Grid, -IndicesCruz)
 indices_en_cruz(TargetIdx, NumOfColumns, Grid, IndicesCruz) :-

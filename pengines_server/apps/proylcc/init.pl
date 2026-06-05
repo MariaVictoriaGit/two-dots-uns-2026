@@ -18,7 +18,7 @@
  * - = obstáculo (celda no jugable)
  * ~ = agua
  */
-
+/*
 init([
 	% Fila 0 (índices 0-7)
 	[-], [r], [c], [p], [-], [-], [-], [-],
@@ -39,11 +39,17 @@ init([
 	% Fila 8 (índices 64-71)
 	[-], [y, ~], [y, ~], [y], [-], [-], [-], [-]
 ], 8, [[r, 10], [g, 10], [p, 15], [~, 21]], 35).
+*/
+/*
+init([
+    [r], [g],
+    [y], [c]
+], 2, [[r, 5]], 15).*/
 
-/* Caso para probar el deadlock (sin movimientos posibles) 
+/* Caso para probar el deadlock (sin movimientos posibles) */
 init([
     [p], [p], [r], [g],
     [y], [c], [y], [c],
     [r], [g], [r], [g],
     [y], [c], [y], [c]
-], 4, [[p, 2], [r, 10]], 15).*/
+], 4, [[p, 2], [r, 10]], 15).
