@@ -27,9 +27,9 @@ function Game() {
   const [waiting, setWaiting] = useState(false);
 
   const [powerUps, setPowerUps] = useState<PowerUp[]>([
-    { id: 'mezclar', name: 'Mezclar', image: '/lib/imágenes/mezclar.png', count: 1 },
+    { id: 'mezclar', name: 'Mezclar', image: '/lib/imágenes/mezclar.png', count: 3 },
     { id: 'borrador', name: 'borrar una bolita', image: '/lib/imágenes/borrador.png', count: 2 },
-    { id: 'borrar_color', name: 'borrar todo un un color', image: '/lib/imágenes/borrar_color.png', count: 3 },
+    { id: 'borrar_color', name: 'borrar todo un un color', image: '/lib/imágenes/borrar_color.png', count: 1 },
     { id: 'cruz', name: 'borrar en forma de cruz', image: '/lib/imágenes/cruz.png', count: 2 } 
   ]);
   const [activePowerUp, setActivePowerUp] = useState<PowerUpId | null>(null);
