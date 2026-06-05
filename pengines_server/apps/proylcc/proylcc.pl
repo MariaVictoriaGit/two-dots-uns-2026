@@ -72,20 +72,22 @@ connect(Grid, NumOfColumns, Path, Effects) :- % motor de todo el manejo de la ju
    
     explosionar_bombas(GridPostGravedad1, NumOfColumns, GridPostExplosion, HuboExplosion, AchievedBombas),
     (HuboExplosion == true ->
-        gravedad(GridPostExplosion, NumOfColumns, GridFinal),
-        Effects = [
+        gravedad(GridPostExplosion, NumOfColumns,TempFinal),
+        BaseEffects = [
             effect(GridPreGravedad, [achieved([[Color, CantidadRealColor], [~, CantidadAgua]])]),
             effect(GridPostGravedad1, [cae]),
             effect(GridPostExplosion, [explosion, achieved(AchievedBombas)]),
-            effect(GridFinal, [cae])
+            effect(TempFinal, [cae])
         ]
     ;
-        GridFinal = GridPostGravedad1,
-        Effects = [
+        TempFinal = GridPostGravedad1,
+        BaseEffects = [
             effect(GridPreGravedad, [achieved([[Color, CantidadRealColor], [~, CantidadAgua]])]),
-            effect(GridFinal, [cae])
+            effect(TempFinal, [cae])
         ]
-    ).
+    ),
+
+    juntar_efectos_con_mezcla(TempFinal, NumOfColumns, BaseEffects, Effects).
 
 %-------------------------------------------------------------------------------------------------------------
     % eliminar_color(+Grid, +Path, +NumOfColumns, +Color, -GridSinColores, -CantidadRealColor, -NuevosAgua)
@@ -592,6 +594,80 @@ tiene_agua(Celda) :-
 % es_obstaculo(+Celda)
 es_obstaculo([-]).
 
+% ========================================================================================
+%       RESOLUCIÓN DE PUNTO MUERTO (DEADLOCK) - MEZCLA AUTOMÁTICA
+% ========================================================================================
+
+% 1. Verifica si hay al menos un par de colores iguales conectados en todo el tablero
+hay_movimientos(Grid, NumOfColumns) :-
+    nth0(Idx, Grid, Celda),
+    Celda = [Color|_],
+    es_color(Color),
+    adyacente(Idx, Vecino, NumOfColumns, Grid),
+    nth0(Vecino, Grid, CeldaVecina),
+    CeldaVecina = [Color|_],
+    !. % Optimización: Al encontrar el PRIMER par válido, corta la búsqueda y da true.
+
+% 2. junta los efectos. Si no hay movimientos, inyecta una mezcla al final de la animación.
+juntar_efectos_con_mezcla(GridFinal, NumOfColumns, BaseEffects, Effects) :-
+    ( hay_movimientos(GridFinal, NumOfColumns) ->
+        Effects = BaseEffects % Todo normal, hay movimientos
+    ;
+        mezclar_grilla_segura(GridFinal, NumOfColumns, GridMezclada),
+        % No hay masmovimientos, Mezclamos la grilla de forma segura
+        ( hay_movimientos(GridMezclada, NumOfColumns) ->
+            % Se salvó, le mandamos el tablero mezclado
+            append(BaseEffects, [effect(GridMezclada, [mezcla_automatica])], Effects)
+        ;
+            % Se agotaron los intentos y sigue trabado. Mandamos la señal de muerte.
+            append(BaseEffects, [effect(GridMezclada, [deadlock])], Effects)
+        )
+    ).
+
+% 3. Lógica de mezcla SEGURA (que garantice que quede al menos un movimiento)
+mezclar_grilla_segura(Grid, NumOfColumns, GridSegura) :-
+    intentar_mezclar(Grid, NumOfColumns, 10, GridSegura).
+
+intentar_mezclar(Grid, NumOfColumns, Intentos, GridSegura) :-
+    Intentos > 0,
+    mezclar_grilla_base(Grid, GridMezclada),
+    ( hay_movimientos(GridMezclada, NumOfColumns) ->
+        GridSegura = GridMezclada % Éxito
+    ;
+        IntentosRestantes is Intentos - 1,
+        intentar_mezclar(GridMezclada, NumOfColumns, IntentosRestantes, GridSegura)
+    ).
+intentar_mezclar(Grid, _, 0, Grid). % Fallback: Si intentó 10 veces y no pudo, devuelve lo que hay para no romper la app.
+
+mezclar_grilla_base(Grid, ShuffledGrid) :-
+    findall(Color, (member(Celda, Grid), Celda = [Color|_], es_color(Color)), ColoresPuros),
+    mezclar_lista(ColoresPuros, ColoresMezclados),
+    reconstruir_grilla_mezclada(Grid, ColoresMezclados, ShuffledGrid).
+
+% reconstruir_grilla_mezclada(+GridMolde, +ColoresDisponibles, -NuevaGrid)
+reconstruir_grilla_mezclada([], [], []).
+reconstruir_grilla_mezclada([CeldaOrig|RestoOrig], ColoresDisp, [NuevaCelda|RestoNueva]) :-
+    es_obstaculo(CeldaOrig), !, % Es un obstáculo. Se copia igual y NO se consume ningún color.
+    NuevaCelda = CeldaOrig,
+    reconstruir_grilla_mezclada(RestoOrig, ColoresDisp, RestoNueva).
+reconstruir_grilla_mezclada([CeldaOrig|RestoOrig], [ColorNuevo|RestoDisp], [NuevaCelda|RestoNueva]) :-
+    tiene_agua(CeldaOrig), !, % La celda original tenía agua. Le metemos el color nuevo + el agua. Se consume 1 color.
+    NuevaCelda = [ColorNuevo, ~],
+    reconstruir_grilla_mezclada(RestoOrig, RestoDisp, RestoNueva).
+reconstruir_grilla_mezclada([_|RestoOrig], [ColorNuevo|RestoDisp], [[ColorNuevo]|RestoNueva]) :-
+    reconstruir_grilla_mezclada(RestoOrig, RestoDisp, RestoNueva). % Celda normal. Se pone el color puro. Se consume 1 color.
+
+
+% mezclar_lista(+Lista, -ListaMezclada)
+mezclar_lista([], []).
+mezclar_lista(Lista, [Elem|RestoMezclado]) :-
+    % 1. Elegimos un elemento al azar de la lista original
+    random_member(Elem, Lista),
+    % 2. Lo removemos de la lista (select saca la primera coincidencia que encuentra)
+    select(Elem, Lista, RestoLista),
+    % 3. Repetimos el proceso con los elementos que sobran
+    mezclar_lista(RestoLista, RestoMezclado).
+
 % =========================================================================================================================================================================
 %                                                              HABILIDADES ESPECIALES (Power-Ups)
 % =========================================================================================================================================================================
@@ -641,22 +717,11 @@ usar_powerup(cruz, Grid, NumOfColumns, [TargetIdx], Effects) :-
     ].
 
 % Mezclar todo el tablero 
-usar_powerup(mezclar, Grid, _NumOfColumns, _, Effects) :-
-   % 1. Extraemos los colores vivos en una sola línea usando tu helper es_color/1
-    findall(Color, (member(Celda, Grid), Celda = [Color|_], es_color(Color)), ColoresPuros),
-    
-    % 2. Mezclamos esa lista 
-    mezclar_lista(ColoresPuros, ColoresMezclados),
-    
-    % 3. Volvemos a armar la grilla inyectando los colores nuevos en los huecos legales
-    reconstruir_grilla_mezclada(Grid, ColoresMezclados, ShuffledGrid),
-    
-    % 4. Devolvemos la nueva grilla. No hay objetivos cumplidos ni caídas.
+usar_powerup(mezclar, Grid, NumOfColumns, _, Effects) :-
+    mezclar_grilla_segura(Grid, NumOfColumns, ShuffledGrid),
     Effects = [
         effect(ShuffledGrid, [])
     ].
-
-
 
 % indices_en_cruz(+TargetIdx, +NumOfColumns, +Grid, -IndicesCruz)
 indices_en_cruz(TargetIdx, NumOfColumns, Grid, IndicesCruz) :-
@@ -670,27 +735,4 @@ indices_en_cruz(TargetIdx, NumOfColumns, Grid, IndicesCruz) :-
     ), IndicesCruz).
 
 
-% reconstruir_grilla_mezclada(+GridMolde, +ColoresDisponibles, -NuevaGrid)
-reconstruir_grilla_mezclada([], [], []).
-reconstruir_grilla_mezclada([CeldaOrig|RestoOrig], ColoresDisp, [NuevaCelda|RestoNueva]) :-
-    es_obstaculo(CeldaOrig), !, % Es un obstáculo. Se copia igual y NO se consume ningún color.
-    NuevaCelda = CeldaOrig,
-    reconstruir_grilla_mezclada(RestoOrig, ColoresDisp, RestoNueva).
-reconstruir_grilla_mezclada([CeldaOrig|RestoOrig], [ColorNuevo|RestoDisp], [NuevaCelda|RestoNueva]) :-
-    tiene_agua(CeldaOrig), !, % La celda original tenía agua. Le metemos el color nuevo + el agua. Se consume 1 color.
-    NuevaCelda = [ColorNuevo, ~],
-    reconstruir_grilla_mezclada(RestoOrig, RestoDisp, RestoNueva).
-reconstruir_grilla_mezclada([_|RestoOrig], [ColorNuevo|RestoDisp], [[ColorNuevo]|RestoNueva]) :-
-    reconstruir_grilla_mezclada(RestoOrig, RestoDisp, RestoNueva). % Celda normal. Se pone el color puro. Se consume 1 color.
-
-
-% mezclar_lista(+Lista, -ListaMezclada)
-mezclar_lista([], []).
-mezclar_lista(Lista, [Elem|RestoMezclado]) :-
-    % 1. Elegimos un elemento al azar de la lista original
-    random_member(Elem, Lista),
-    % 2. Lo removemos de la lista (select saca la primera coincidencia que encuentra)
-    select(Elem, Lista, RestoLista),
-    % 3. Repetimos el proceso con los elementos que sobran
-    mezclar_lista(RestoLista, RestoMezclado).
 

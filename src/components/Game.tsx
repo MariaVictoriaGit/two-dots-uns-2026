@@ -199,6 +199,12 @@ function Game() {
       setTimeout(() => setIsExploding(false), 500);
     }
 
+    const isDeadlock = effectInfo.includes('deadlock' as any);
+    if (isDeadlock) {
+      setMoves(0); // Forzamos la derrota instantánea
+    }
+   
+
     effectInfo.forEach((effectInfoItem: EffectInfoTerm) => {
       const { functor, args } = effectInfoItem;
       switch (functor) {
