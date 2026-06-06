@@ -4,6 +4,7 @@ import styles from './LevelSelector.module.css';
 interface LevelSelectorProps {
   maxUnlockedLevel: number;
   onSelectLevel: (levelId: number) => void;
+  onBackToMenu?: () => void;
 }
 
 interface Level {
@@ -24,7 +25,7 @@ const LEVELS_DATA: Level[] = Array.from({ length: TOTAL_MAP_LEVELS }, (_, index)
 });
 
 
-export default function LevelSelector({ maxUnlockedLevel, onSelectLevel }: LevelSelectorProps) {
+export default function LevelSelector({ maxUnlockedLevel, onSelectLevel, onBackToMenu }: LevelSelectorProps) {
   const activeLevelRef = useRef<HTMLButtonElement>(null);
 
   // EFECTO DE AUTO-SCROLL: Se ejecuta una sola vez cuando se abre el menú
@@ -40,6 +41,11 @@ export default function LevelSelector({ maxUnlockedLevel, onSelectLevel }: Level
     
    return (
     <div className={styles.menuContainer}>
+      {onBackToMenu && (
+        <button className={styles.backButton} onClick={onBackToMenu}>
+          <img src="/lib/imágenes/volver.png" alt="Volver" className={styles.backIcon} /> Volver
+        </button>
+      )}
       <header className={styles.header}>
         <h1 className={styles.title}>
           TWO<span>DOTS</span>
@@ -71,7 +77,7 @@ export default function LevelSelector({ maxUnlockedLevel, onSelectLevel }: Level
                 {isUnlocked ? (
                   <span className={styles.levelNumber}>{lvl.id}</span>
                 ) : (
-                  <span className="material-symbols-rounded">lock</span>
+                  <span className={styles.lockedText}>Bloqueado</span>
                 )}
               </button>
               

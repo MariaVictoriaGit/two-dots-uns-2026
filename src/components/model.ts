@@ -45,3 +45,12 @@ export type AchievedTerm = PrologTerm & {
   functor: "achieved";
   args: [CellContent, number][];
 }
+
+export type PowerUpId = 'borrar_color' | 'borrador' | 'mezclar' | 'cruz';
+
+export interface PowerUp {
+  id: PowerUpId;
+  name: string;
+  image: string;
+  count: number;
+}

@@ -3,21 +3,16 @@ import PengineClient from '../services/PengineClient';
 import Board from './Board';
 import { delay } from './util';
 import styles from './Game.module.css';
-import { CellContent, Grid, Objectives, EffectTerm, EffectInfoTerm, colors, colorToCss, colorToImage } from './model';
+import { CellContent, Grid, Objectives, EffectTerm, EffectInfoTerm, PowerUp, PowerUpId, colors, colorToCss, colorToImage } from './model';
 import { useHistory, checkIsPathClosed } from './helpers';
+import { useAudio } from './useAudio';
 import LevelSelector from './LevelSelector';
-
-type PowerUpId = 'borrar_color' | 'borrador' | 'mezclar' | 'cruz';
-
-interface PowerUp {
-  id: PowerUpId;
-  name: string;
-  image: string;
-  count: number;
-}
+import MainMenu from './MainMenu';
+import PowerUpBar from './PowerUpBar';
+import GameOverModal from './GameOverModal';
 
 function Game() {
-  const [currentScreen, setCurrentScreen] = useState<'menu' | 'playing'>('menu');
+  const [currentScreen, setCurrentScreen] = useState<'mainMenu' | 'levelSelector' | 'playing'>('mainMenu');
   const [levelId, setLevelId] = useState<number>(1);
   const [isPaused, setIsPaused] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -36,10 +31,13 @@ function Game() {
     { id: 'mezclar', name: 'Mezclar', image: '/lib/imágenes/mezclar.png', count: 3 },
     { id: 'borrador', name: 'borrar una bolita', image: '/lib/imágenes/borrador.png', count: 2 },
     { id: 'borrar_color', name: 'borrar todo un un color', image: '/lib/imágenes/borrar_color.png', count: 1 },
-    { id: 'cruz', name: 'borrar en forma de cruz', image: '/lib/imágenes/cruz.png', count: 2 } 
+    { id: 'cruz', name: 'borrar en forma de cruz', image: '/lib/imágenes/cruz.png', count: 2 }
   ]);
   const [activePowerUp, setActivePowerUp] = useState<PowerUpId | null>(null);
   const [isExploding, setIsExploding] = useState(false);
+
+  // --- MÚSICA DE FONDO ---
+  useAudio('/lib/imágenes/Dummy! (UNDERTALE Soundtrack) - Toby Fox.mp3', currentScreen === 'playing' && !isMuted);
 
   //este history no tocar tuto quema, es el coso para ver que hicimos en el pasado, no es el historial de movimientos, es el historial de estados del juego, para poder mostrar la animacion de los efectos, cada vez que se hace un movimiento se guarda el estado del juego antes de hacer el movimiento, y se muestra ese estado mientras se muestra la animacion de los efectos, y cuando termina la animacion se muestra el estado actual del juego
   const { grid: historyGrid, objectives: historyObjectives } = useHistory({ grid: grid!, objectives, waiting });
@@ -100,9 +98,9 @@ function Game() {
         executePowerUp('cruz', [targetIdx]);
       }
       else if (activePowerUp === 'mezclar') {
-        executePowerUp('mezclar', [targetIdx]); 
+        executePowerUp('mezclar', [targetIdx]);
       }
-      return; 
+      return;
     }
 
     setPath(newPath);
@@ -110,20 +108,20 @@ function Game() {
   }
 
   async function executePowerUp(tipoPoder: PowerUpId, params: number[]) {
-    setActivePowerUp(null); 
+    setActivePowerUp(null);
     setWaiting(true);
 
     const gridS = JSON.stringify(grid).replaceAll('"', '');
-    const paramsS = JSON.stringify(params); 
-    
+    const paramsS = JSON.stringify(params);
+
     // Llama al router de Prolog
-    const queryS = `usar_powerup(${tipoPoder}, ${gridS}, ${numOfColumns}, ${paramsS}, Effects)`; 
-    
+    const queryS = `usar_powerup(${tipoPoder}, ${gridS}, ${numOfColumns}, ${paramsS}, Effects)`;
+
     const response = await pengine.query(queryS);
-    setPath([]); 
-    
+    setPath([]);
+
     if (response) {
-      setPowerUps(prev => prev.map(pu => 
+      setPowerUps(prev => prev.map(pu =>
         pu.id === tipoPoder ? { ...pu, count: Math.max(0, pu.count - 1) } : pu
       ));
       animateEffects(response['Effects']);
@@ -132,7 +130,7 @@ function Game() {
       setWaiting(false);
     }
   }
-  
+
   /**
    * Llamado cuando el usuario termina de dibujar un camino en la cuadrícula.
    */
@@ -178,10 +176,10 @@ function Game() {
       if (i < effects.length - 1) {
         const currentInfo = effects[i].args[1] as any[];
         const nextInfo = effects[i + 1].args[1] as any[];
-        
-       const wasExplosion = currentInfo.includes('explosion');
+
+        const wasExplosion = currentInfo.includes('explosion');
         const isNextExplosion = nextInfo.includes('explosion');
-        
+
         if (isNextExplosion) {
           // ENCIENDE EL FLASH ACÁ: Mientras las bombas todavía están visibles
           setIsExploding(true);
@@ -195,7 +193,7 @@ function Game() {
     }
     setWaiting(false);
   }
-  
+
   function applyEffect(effect: EffectTerm) {//va a venir un arreglo de efectos, cada uno con una grilla y una info de efecto, esta funcion aplica el efecto actual, que es actualizar la grilla y actualizar los objetivos logrados
     const [effectGrid, effectInfo] = effect.args;//esto va a hacer una lista con los dos argumentos grilla e informacion de efecto
     setGrid(effectGrid);//seteamos la grilla
@@ -209,7 +207,7 @@ function Game() {
     if (isDeadlock) {
       setMoves(0); // Forzamos la derrota instantánea
     }
-   
+
 
     effectInfo.forEach((effectInfoItem: EffectInfoTerm) => {
       const { functor, args } = effectInfoItem;
@@ -232,20 +230,41 @@ function Game() {
     });
   }
 
+  // --- HELPERS PARA LIMPIAR ESTADO ---
+  function resetGameState() {
+    setGrid(null);
+    setMoves(null);
+    setObjectives({});
+  }
+
   // No muestres nada hasta que el servidor de Prolog esté listo (alternativamente, renderiza una interfaz de carga).
   if (!pengine) {
     return null;
   }
-  
-  if (currentScreen === 'menu') {
+
+  if (currentScreen === 'mainMenu') {
     return (
-      <LevelSelector 
-      maxUnlockedLevel={maxUnlockedLevel}
+      <MainMenu
+        onStart={() => {
+          setLevelId(1);
+          setGrid(null);
+          setCurrentScreen('playing');
+        }}
+        onSelectLevel={() => setCurrentScreen('levelSelector')}
+      />
+    );
+  }
+
+  if (currentScreen === 'levelSelector') {
+    return (
+      <LevelSelector
+        maxUnlockedLevel={maxUnlockedLevel}
         onSelectLevel={(id) => {
           setLevelId(id);
           setGrid(null); // Limpiamos la grilla vieja para forzar recarga
           setCurrentScreen('playing');
-        }} 
+        }}
+        onBackToMenu={() => setCurrentScreen('mainMenu')}
       />
     );
   }
@@ -256,17 +275,17 @@ function Game() {
 
   const isAnimating = waiting || historyGrid !== undefined;
   const gameStarted = grid !== null && moves !== null && Object.keys(objectives).length > 0;
-  
+
   const isVictory = gameStarted && Object.values(objectives).every(val => val! <= 0);
   const isDefeat = gameStarted && moves !== null && moves <= 0 && !isVictory;
-  
+
   const showGameOver = !isAnimating && (isVictory || isDefeat);
 
   // --- LÓGICA DE FEEDBACK VISUAL ---
   // 1. Identificamos qué color está seleccionando el jugador
-  const currentColorContent = path.length > 0 && grid 
-      ? grid[path[0]].find(v => colors.includes(v as string)) as CellContent 
-      : null;
+  const currentColorContent = path.length > 0 && grid
+    ? grid[path[0]].find(v => colors.includes(v as string)) as CellContent
+    : null;
   const currentColorCss = currentColorContent ? colorToCss(currentColorContent) : 'transparent';
 
   // 2. Evaluamos si se activa el borrado masivo
@@ -281,7 +300,7 @@ function Game() {
   return (
     <div className={styles.game} style={{ '--num-columns': numOfColumns } as React.CSSProperties}>
       <div className={styles.headerContainer}>
-        
+
         {/* BOTÓN DE PAUSA CON SVG DIBUJADO A MANO */}
         <button className={styles.pauseBtn} onClick={() => setIsPaused(true)} title="Pausa">
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -295,25 +314,25 @@ function Game() {
             <span className={styles.movesLabel}>MOVES</span>
             <strong className={styles.movesValue}>{moves}</strong>
           </div>
-          
+
           <div className={styles.divider} />
-          
+
           <div className={styles.objectivesGroup}>
             {Object.entries(historyObjectives ?? objectives).map(([key, value]) => {
               const isCol = colors.includes(key);
               return (
                 <div key={key} className={styles.objectiveItem} data-completed={Number(value) <= 0}>
                   {isCol ? (
-                    <img 
-                      src={colorToImage(key as CellContent)} 
-                      alt={key} 
+                    <img
+                      src={colorToImage(key as CellContent)}
+                      alt={key}
                       className={styles.objectiveDot}
                       style={{ width: '24px', height: '24px', objectFit: 'cover' }}
                     />
                   ) : key === '~' ? (
-                    <img 
-                      src="/lib/imágenes/agua.png" 
-                      alt="agua" 
+                    <img
+                      src="/lib/imágenes/agua.png"
+                      alt="agua"
                       className={styles.objectiveDot}
                       style={{ width: '24px', height: '24px', objectFit: 'cover' }}
                     />
@@ -331,26 +350,26 @@ function Game() {
       {/* CAPA DE ANIMACIÓN DE BORDES */}
       {path.length > 0 && (
         // Feedback visual mdel camino cerrado o largo (borde que se va llenando y fondo que aparece)
-          <div 
-              className={styles.massiveOverlay} 
-              data-massive={isMassiveClear}
-              style={{
-                  '--path-color': currentColorCss,
-                  '--h-prog': `${horizontalProgress}%`,
-                  '--v-prog': `${verticalProgress / 2}%`, // Dividido 2 porque crece de ambos lados
-                  backgroundColor: isMassiveClear ? currentColorCss : 'transparent',
-              } as React.CSSProperties}
-          >
-              {/* Bordes Horizontales (Crecen desde el centro hacia las esquinas) */}
-              <div className={`${styles.borderLine} ${styles.top}`} />
-              <div className={`${styles.borderLine} ${styles.bottom}`} />
+        <div
+          className={styles.massiveOverlay}
+          data-massive={isMassiveClear}
+          style={{
+            '--path-color': currentColorCss,
+            '--h-prog': `${horizontalProgress}%`,
+            '--v-prog': `${verticalProgress / 2}%`, // Dividido 2 porque crece de ambos lados
+            backgroundColor: isMassiveClear ? currentColorCss : 'transparent',
+          } as React.CSSProperties}
+        >
+          {/* Bordes Horizontales (Crecen desde el centro hacia las esquinas) */}
+          <div className={`${styles.borderLine} ${styles.top}`} />
+          <div className={`${styles.borderLine} ${styles.bottom}`} />
 
-              {/* Bordes Verticales (Crecen desde las esquinas hacia el medio) */}
-              <div className={`${styles.borderLine} ${styles.leftTop}`} />
-              <div className={`${styles.borderLine} ${styles.leftBottom}`} />
-              <div className={`${styles.borderLine} ${styles.rightTop}`} />
-              <div className={`${styles.borderLine} ${styles.rightBottom}`} />
-          </div>
+          {/* Bordes Verticales (Crecen desde las esquinas hacia el medio) */}
+          <div className={`${styles.borderLine} ${styles.leftTop}`} />
+          <div className={`${styles.borderLine} ${styles.leftBottom}`} />
+          <div className={`${styles.borderLine} ${styles.rightTop}`} />
+          <div className={`${styles.borderLine} ${styles.rightBottom}`} />
+        </div>
       )}
       {/* TABLERO */}
       <div className={`${styles.boardWrapper} ${isExploding ? styles.flashEffect : ''}`}>
@@ -360,105 +379,46 @@ function Game() {
           path={path} //le paso camino
           onPathChange={onPathChange} //que hacer cuando el jugdor avanza o retrocede en el camino
           onDone={onPathDone} //el jugador solto el mouse, entonces se termina el camino
-          readonly={waiting || historyGrid !== undefined || showGameOver} 
+          readonly={waiting || historyGrid !== undefined || showGameOver}
         />
       </div>
 
       {/* POWER-UPS */}
-      <div className={styles.powerUpContainer}>
-        {powerUps.map(pu => (
-          <button 
-            key={pu.id}
-            className={`${styles.powerUpBtn} ${activePowerUp === pu.id ? styles.powerUpBtnActive : ''}`}
-            onClick={() => {
-                setActivePowerUp(activePowerUp === pu.id ? null : pu.id);
-            }}
-            disabled={pu.count === 0 || waiting}
-            title={pu.name}
-          >
-            
-            <img src={pu.image} alt={pu.name} className={styles.powerUpIcon} /> 
-            
-           
-            <span className={styles.powerUpBadge}>{pu.count}</span>
-          </button>
-        ))}
-      </div>  
+      <PowerUpBar
+        powerUps={powerUps}
+        activePowerUp={activePowerUp}
+        onToggle={(id) => setActivePowerUp(activePowerUp === id ? null : id)}
+        disabled={waiting}
+      />
 
-      {/* MODAL DE VICTORIA/DERROTA */}
+      {/* MODAL DE VICTORIA/DERROTA/PAUSA */}
       {(showGameOver || isPaused) && (
-        <div className={styles.gameOverOverlay}>
-          <div className={styles.gameOverModal}>
-            
-            {/* Título Dinámico */}
-            {isPaused ? (
-              <div className={styles.pauseText}>PAUSA</div>
-            ) : isVictory ? (
-              <div className={styles.victoryText}>¡VICTORIA!</div>
-            ) : (
-              <div className={styles.defeatText}>¡DERROTA!</div>
-            )}
-            
-            {/* Botones Dinámicos */}
-            <div className={styles.modalButtons}>
-              
-              {/* BOTONES DE PAUSA */}
-              {isPaused && (
-                <>
-                  <button className={styles.primaryButton} onClick={() => setIsPaused(false)}>REANUDAR</button>
-                  <button className={styles.secondaryButton} onClick={() => setIsMuted(!isMuted)}>
-                    {isMuted ? '🎵 ACTIVAR SONIDO' : '🔇 MUTEAR SONIDO'}
-                  </button>
-                </>
-              )}
-
-              {/* BOTONES DE VICTORIA */}
-              {isVictory && !isPaused && (
-                <button className={styles.primaryButton} onClick={() => {
-                  // 1. Calculamos el siguiente nivel y el candado
-                  setLevelId(prevLevel => {
-                    const nextId = prevLevel + 1;
-                    setMaxUnlockedLevel(prevMax => nextId > prevMax ? nextId : prevMax);
-                    return nextId;
-                  });
-                  
-                  // 2. Limpiamos la pantalla
-                  setGrid(null);
-                  setMoves(null);
-                  setObjectives({});
-                  
-                  // 3. ¡La solución más simple! Llamamos a Prolog directo.
-                  initGame(); 
-                }}>SIGUIENTE NIVEL</button>
-              )}
-
-              {/* BOTONES DE DERROTA */}
-              {isDefeat && !isPaused && (
-                <button className={styles.primaryButton} onClick={() => {
-                  // Limpiamos la pantalla
-                  setGrid(null);
-                  setMoves(null);
-                  setObjectives({});
-                  
-                  // Reiniciamos el mismo nivel
-                  initGame();
-                }}>VOLVER A INTENTAR</button>
-              )}
-
-              {/* BOTÓN UNIVERSAL: VOLVER AL MENÚ */}
-              <button className={styles.secondaryButton} onClick={() => {
-                setGrid(null);
-                setMoves(null);
-                setObjectives({});
-                setIsPaused(false);
-                setCurrentScreen('menu'); // Chau tablero, hola menú
-              }}>
-                MENÚ PRINCIPAL
-              </button>
-
-            </div>
-          </div>
-        </div>
+        <GameOverModal
+          isPaused={isPaused}
+          isVictory={isVictory}
+          isDefeat={isDefeat}
+          isMuted={isMuted}
+          onResume={() => setIsPaused(false)}
+          onToggleMute={() => setIsMuted(!isMuted)}
+          onNextLevel={() => {
+            setLevelId(prevLevel => {
+              const nextId = prevLevel + 1;
+              setMaxUnlockedLevel(prevMax => nextId > prevMax ? nextId : prevMax);
+              return nextId;
+            });
+            resetGameState();
+            initGame();
+          }}
+          onRetry={() => {
+            resetGameState();
+            initGame();
+          }}
+          onMainMenu={() => {
+            resetGameState();
+            setIsPaused(false);
+            setCurrentScreen('mainMenu');
+          }}
+        />
       )}
     </div>
   );
