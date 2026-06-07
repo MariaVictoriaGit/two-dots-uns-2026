@@ -43,30 +43,30 @@ init([
 
 init_level(1, Grid, Cols, Goals, Moves) :- 
     init(Grid, Cols, Goals, Moves).
-% Nivel 2: Tablero 5x5 con obstáculos centrales. 3 colores.
+
 init_level(2, [
     [g], [g], [g], [g], [g], [g], [g], [g],
-    [g], [y], [y], [y], [c], [g], [~], [g],
+    [g], [y], [y], [y], [c], [g], [y,~], [g],
     [g], [y], [p], [y], [c], [g], [g], [g],
     [g], [y], [y], [y], [c], [r], [r], [g],
-    [g], [p], [p], [p], [p], [r], [~], [g],
+    [g], [p], [p], [p], [p], [r], [p,~], [g],
     [g], [-], [-], [-], [p], [r], [r], [g],
     [g], [-], [c,~], [-], [p], [c], [c], [g],
     [g], [-], [-], [-], [p], [c], [g], [g],
     [g], [g], [g], [g], [g], [g], [g], [g]
 ], 8, [[g,20],[r,10],[p,15],[~,5]], 30).
 
-% Nivel 3: Tablero 6x6 con agua en la base. 4 colores.
+
 init_level(3, [
     [y], [p], [r], [g], [y], [p],
-    [g], [y], [p], [r], [p], [g],
-    [r], [g], [y], [p], [r], [y],
-    [p], [r], [g], [y], [g], [r],
+    [g], [y], [y], [r], [p], [g],
+    [g], [g], [y], [p], [r], [y],
+    [p], [p], [g], [y], [y], [p],
     [y, ~], [p, ~], [r, ~], [g, ~], [y, ~], [p, ~],
-    [g, ~], [y, ~], [p, ~], [r, ~], [p, ~], [g, ~]
+    [y, ~], [y, ~], [r, ~], [r, ~], [p, ~], [g, ~]
 ], 6, [[~, 10], [r, 12], [y, 12]], 18).
 
-% Nivel 4: Tablero 6x6 diseñado para incentivar cerrar cuadrados y crear bombas.
+
 init_level(4, [
     [c], [c], [c], [y], [p], [r],
     [c], [r], [c], [g], [y], [p],
@@ -75,6 +75,94 @@ init_level(4, [
     [g], [y], [p], [g], [g], [p],
     [r], [g], [p], [p], [r], [y]
 ], 6, [[g, 15], [c, 15], [p, 10]], 20).
+
+
+init_level(N, Grid, Cols, Goals, Moves) :-
+    N > 4,
+
+    Cols is min(10, 4 + N ),
+    Rows is min(10, 5 + N ),
+
+    TotalCells is Cols * Rows,
+
+    % 2. Movimientos escalables según el nivel
+    Moves is 25 + (N * 2),
+
+    colores_jugables(ColoresDelNivel),
+    
+
+    generar_celdas(TotalCells, ColoresDelNivel, Grid),
+
+    contar_elementos(Grid, CantObs, CantAgua),
+    CeldasJugables is TotalCells - CantObs,
+    
+    ObjetivoColor is min(CeldasJugables - 10 , 15 + N),
+    
+    MaxAgua is floor(CeldasJugables * 0.85),
+    random(ObjetivoColor, MaxAgua , AguaRandom),
+    ObjetivoAgua is AguaRandom,
+    
+    nth0(0, ColoresDelNivel, C1),
+    nth0(1, ColoresDelNivel, C2),
+    nth0(2, ColoresDelNivel, C3),
+
+    ( CantAgua > 0 ->
+        Goals = [[C1, ObjetivoColor], [C2, ObjetivoColor],[C3, ObjetivoColor], [~, ObjetivoAgua]]
+    ;
+        Goals = [[C1, ObjetivoColor], [C2, ObjetivoColor],[C3, ObjetivoColor]]
+    ).
+
+% ====================================================================
+
+% contar_elementos(+Grid, -CantObs, -CantAgua)
+contar_elementos([], 0, 0).
+contar_elementos([[-]|Resto], Obs, Agua) :- 
+    !, 
+    contar_elementos(Resto, Obs1, Agua), 
+    Obs is Obs1 + 1.
+
+contar_elementos([[_, ~]|Resto], Obs, Agua) :- 
+    !, 
+    contar_elementos(Resto, Obs, Agua1), 
+    Agua is Agua1 + 1.
+
+contar_elementos([_|Resto], Obs, Agua) :- 
+    contar_elementos(Resto, Obs, Agua).
+
+% --- Lógica de Selección de Paleta ---
+% colores_jugables(-Seleccionados)
+colores_jugables(Mezclados) :-
+    random_permutation([r, c, g, p, y], Mezclados).
+  
+
+% --- Bucle generador de celdas ---
+% generar_celdas(+Cantidad, +ColoresDelNivel, -Grilla)
+generar_celdas(0, _, []) :- !.
+generar_celdas(Cantidad, ColoresDelNivel, [Celda|Resto]) :-
+    Cantidad > 0,
+    % Tiramos un dado del 0 al 100 para aplicar distribución de probabilidad
+    random(0, 100, Dado),
+    asignar_tipo_celda(Dado, ColoresDelNivel, Celda),
+    CantNueva is Cantidad - 1,
+    generar_celdas(CantNueva, ColoresDelNivel, Resto).
+
+% --- Probabilidades de generación de celdas ---
+% asignar_tipo_celda(+Dado, +ColoresDelNivel, -Celda)
+% OBSTÁCULOS (10% de chance: Dado cae entre 0 y 9)
+asignar_tipo_celda(Dado, _, [-]) :- 
+    Dado < 10, !.
+
+% AGUA (15% de chance: Dado cae entre 10 y 24)
+asignar_tipo_celda(Dado, ColoresDelNivel, [Color, ~]) :- 
+    Dado >= 10, Dado < 25, !,
+    random_member(Color, ColoresDelNivel).
+
+% CELDA NORMAL (75% de chance: Dado cae entre 25 y 99)
+asignar_tipo_celda(Dado, ColoresDelNivel, [Color]) :- 
+    Dado >= 25, Dado < 100,
+    random_member(Color, ColoresDelNivel).
+
+
 /*
 init([
     [r], [g],
@@ -87,62 +175,4 @@ init([
     [y], [c], [y], [c],
     [r], [g], [r], [g],
     [y], [c], [y], [c]
-], 4, [[p, 2], [r, 10]], 15).*/
-init_level(N, Grid, Cols, Goals, Moves) :-
-    N > 4,
-    
-    % 1. Tamaño dinámico controlado (Max 10 columnas para cuidar el layout UI)
-    Cols is min(10, 4 + (N // 2)),
-    Rows is min(10, 5 + (N // 2)),
-    TotalCells is Cols * Rows,
-    
-    % 2. Movimientos escalables según el nivel
-    Moves is 15 + (N * 2),
-    
-    % 3. Selección de paleta de colores para este nivel
-    % (Evitamos usar los 5 colores juntos para garantizar que haya conexiones posibles)
-    colores_jugables(ColoresDelNivel),
-    
-    % 4. Rellenar la grilla usando probabilidades matemáticas
-    generar_celdas(TotalCells, ColoresDelNivel, Grid),
-    
-    % 5. Objetivos dinámicos: Cazar 2 colores y expandir agua
-    TargetColor is 15 + N,
-    TargetAgua is 5 + (N // 2),
-    nth0(0, ColoresDelNivel, C1),
-    nth0(1, ColoresDelNivel, C2),
-    Goals = [[C1, TargetColor], [C2, TargetColor], [~, TargetAgua]].
-
-% --- Lógica de Selección de Paleta ---
-colores_jugables(Seleccionados) :-
-    % Mezclamos los colores disponibles (sin la 'b' de bomba)
-    random_permutation([r, c, g, p, y], Mezclados),
-    % Cortamos la lista para jugar solo con 4 colores y que sea divertido
-    length(Seleccionados, 4),
-    append(Seleccionados, _, Mezclados).
-
-% --- Bucle generador de celdas ---
-generar_celdas(0, _, []) :- !.
-generar_celdas(Cantidad, ColoresDelNivel, [Celda|Resto]) :-
-    Cantidad > 0,
-    % Tiramos un dado del 0 al 100 para aplicar distribución de probabilidad
-    random(0, 100, Dado),
-    asignar_tipo_celda(Dado, ColoresDelNivel, Celda),
-    CantNueva is Cantidad - 1,
-    generar_celdas(CantNueva, ColoresDelNivel, Resto).
-
-% --- Distribución de Probabilidades ---
-
-% 1. OBSTÁCULOS (5% de chance: Dado cae entre 0 y 4)
-asignar_tipo_celda(Dado, _, [-]) :- 
-    Dado < 5, !.
-
-% 2. AGUA (10% de chance: Dado cae entre 5 y 14)
-asignar_tipo_celda(Dado, ColoresDelNivel, [Color, ~]) :- 
-    Dado >= 5, Dado < 15, !,
-    random_member(Color, ColoresDelNivel).
-
-% 3. CELDA NORMAL (85% de chance: Dado cae entre 15 y 99)
-asignar_tipo_celda(Dado, ColoresDelNivel, [Color]) :- 
-    Dado >= 15,
-    random_member(Color, ColoresDelNivel).
+], 4, [[p, 2], [r, 10]], 15).*/ 
