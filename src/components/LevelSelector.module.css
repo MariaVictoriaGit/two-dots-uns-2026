@@ -91,7 +91,7 @@
       rgba(58, 87, 131, 0.6), 
       rgba(58, 87, 131, 0.9)
     ),
-  url('/lib/imágenes/fondo-pasto.png'); 
+  url('/lib/imagenes/fondo-pasto.png'); 
   background-repeat: repeat-y; 
   background-size: 100% auto;
 }
@@ -176,7 +176,7 @@
   z-index: 1;
   pointer-events: none;
   
-  background-image: url('/lib/imágenes/caminito.png'); 
+  background-image: url('/lib/imagenes/caminito.png'); 
   background-size: 100% 100%;
   background-repeat: no-repeat;
   background-position: center;

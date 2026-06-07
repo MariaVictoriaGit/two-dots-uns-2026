@@ -28,16 +28,16 @@ function Game() {
   const [waiting, setWaiting] = useState(false);
 
   const [powerUps, setPowerUps] = useState<PowerUp[]>([
-    { id: 'mezclar', name: 'Mezclar', image: '/lib/imágenes/mezclar.png', count: 3 },
-    { id: 'borrador', name: 'borrar una bolita', image: '/lib/imágenes/borrador.png', count: 2 },
-    { id: 'borrar_color', name: 'borrar todo un un color', image: '/lib/imágenes/borrar_color.png', count: 1 },
-    { id: 'cruz', name: 'borrar en forma de cruz', image: '/lib/imágenes/cruz.png', count: 2 }
+    { id: 'mezclar', name: 'Mezclar', image: '/lib/imagenes/mezclar.png', count: 3 },
+    { id: 'borrador', name: 'borrar una bolita', image: '/lib/imagenes/borrador.png', count: 2 },
+    { id: 'borrar_color', name: 'borrar todo un un color', image: '/lib/imagenes/borrar_color.png', count: 1 },
+    { id: 'cruz', name: 'borrar en forma de cruz', image: '/lib/imagenes/cruz.png', count: 2 }
   ]);
   const [activePowerUp, setActivePowerUp] = useState<PowerUpId | null>(null);
   const [isExploding, setIsExploding] = useState(false);
 
   // --- MÚSICA DE FONDO ---
-  useAudio('/lib/imágenes/Dummy! (UNDERTALE Soundtrack) - Toby Fox.mp3', currentScreen === 'playing' && !isMuted);
+  useAudio('/lib/imagenes/Dummy! (UNDERTALE Soundtrack) - Toby Fox.mp3', currentScreen === 'playing' && !isMuted);
 
   //este history no tocar tuto quema, es el coso para ver que hicimos en el pasado, no es el historial de movimientos, es el historial de estados del juego, para poder mostrar la animacion de los efectos, cada vez que se hace un movimiento se guarda el estado del juego antes de hacer el movimiento, y se muestra ese estado mientras se muestra la animacion de los efectos, y cuando termina la animacion se muestra el estado actual del juego
   const { grid: historyGrid, objectives: historyObjectives } = useHistory({ grid: grid!, objectives, waiting });
@@ -340,7 +340,7 @@ function Game() {
                     />
                   ) : key === '~' ? (
                     <img
-                      src="/lib/imágenes/agua.png"
+                      src="/lib/imagenes/agua.png"
                       alt="agua"
                       className={styles.objectiveDot}
                       style={{ width: '24px', height: '24px', objectFit: 'cover' }}

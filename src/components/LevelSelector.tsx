@@ -44,7 +44,7 @@ export default function LevelSelector({ maxUnlockedLevel, onSelectLevel, onBackT
       <div className={styles.topBar}>
         {onBackToMenu && (
           <button className={styles.backButton} onClick={onBackToMenu}>
-            <img src="/lib/imágenes/volver.png" alt="Volver" className={styles.backIcon} /> Volver
+            <img src="/lib/imagenes/volver.png" alt="Volver" className={styles.backIcon} /> Volver
           </button>
         )}
         <header className={styles.header}>

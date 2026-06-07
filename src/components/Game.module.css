@@ -8,7 +8,7 @@
       rgba(58, 87, 131, 0.6), 
       rgba(58, 87, 131, 0.9)
     ),
-    url('/lib/imágenes/fondo-juego.png');
+    url('/lib/imagenes/fondo-juego.png');
     background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -329,7 +329,7 @@
   border: 2px solid #3a5783; 
 }
 
-/* Para cuando cargues las imágenes reales (.png) */
+/* Para cuando cargues las imagenes reales (.png) */
 .powerUpIcon {
   width: 24px;
   height: 24px;
