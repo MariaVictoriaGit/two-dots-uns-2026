@@ -15,7 +15,7 @@ interface Level {
 }
 const TOTAL_MAP_LEVELS = 50;
 
-// Generamos la lista de niveles dinámicamente con una sola línea de código
+// Generamos la lista de niveles dinámicamente 
 const LEVELS_DATA: Level[] = Array.from({ length: TOTAL_MAP_LEVELS }, (_, index) => {
   const levelId = index + 1;
   return { 
@@ -41,53 +41,55 @@ export default function LevelSelector({ maxUnlockedLevel, onSelectLevel, onBackT
     
    return (
     <div className={styles.menuContainer}>
-      {onBackToMenu && (
-        <button className={styles.backButton} onClick={onBackToMenu}>
-          <img src="/lib/imágenes/volver.png" alt="Volver" className={styles.backIcon} /> Volver
-        </button>
-      )}
-      <header className={styles.header}>
-        <h1 className={styles.title}>
-          TWO<span>DOTS</span>
-        </h1>
-        <p className={styles.subtitle}>Selecciona un nivel para comenzar</p>
-      </header>
+      <div className={styles.topBar}>
+        {onBackToMenu && (
+          <button className={styles.backButton} onClick={onBackToMenu}>
+            <img src="/lib/imágenes/volver.png" alt="Volver" className={styles.backIcon} /> Volver
+          </button>
+        )}
+        <header className={styles.header}>
+          <h1 className={styles.title}>
+            TWO<span>DOTS</span>
+          </h1>
+          <p className={styles.subtitle}>Selecciona un nivel para comenzar</p>
+        </header>
+      </div>
 
       {/* El Mapa de Niveles Colectivo */}
-      <div className={styles.mapPath}>
-        {LEVELS_DATA.map((lvl, index) => {
-          const alignmentClass = index % 2 === 0 ? styles.leftAlign : styles.rightAlign;
-          const isUnlocked = lvl.id <= maxUnlockedLevel;
-          
-          // ¿Es este el nivel que el jugador tiene que jugar ahora?
-          const isCurrentLevel = lvl.id === maxUnlockedLevel;
+     <div className={styles.scrollArea}>
+        <div className={styles.mapPath}>
+          {LEVELS_DATA.map((lvl, index) => {
+            const alignmentClass = index % 2 === 0 ? styles.leftAlign : styles.rightAlign;
+            const isUnlocked = lvl.id <= maxUnlockedLevel;
+            const isCurrentLevel = lvl.id === maxUnlockedLevel;
 
-          return (
-            <div key={lvl.id} className={`${styles.levelNodeWrapper} ${alignmentClass}`}>
-              <button
-                // SOLUCIÓN: Si es el nivel actual, le pegamos la referencia
-                ref={isCurrentLevel ? activeLevelRef : null}
-                className={styles.levelButton}
-                disabled={!isUnlocked}
-                onClick={() => onSelectLevel(lvl.id)}
-                data-unlocked={isUnlocked}
-                // Si es el actual, podemos agregar un estilo extra para que resalte
-                style={isCurrentLevel ? { outline: '4px solid white', outlineOffset: '4px' } : {}}
-              >
-                {isUnlocked ? (
-                  <span className={styles.levelNumber}>{lvl.id}</span>
-                ) : (
-                  <span className={styles.lockedText}>Bloqueado</span>
+            return (
+              <div key={lvl.id} className={`${styles.levelNodeWrapper} ${alignmentClass}`}>
+                <button
+                  ref={isCurrentLevel ? activeLevelRef : null}
+                  className={styles.levelButton}
+                  disabled={!isUnlocked}
+                  onClick={() => onSelectLevel(lvl.id)}
+                  data-unlocked={isUnlocked}
+                  style={isCurrentLevel ? { outline: '4px solid white', outlineOffset: '4px' } : {}}
+                >
+                  {isUnlocked ? (
+                    <span className={styles.levelNumber}>{lvl.id}</span>
+                  ) : (
+                    <span className={styles.lockedText}>Bloqueado</span>
+                  )}
+                </button>
+                
+                {/* Linea conectora */}
+                {index < LEVELS_DATA.length - 1 && (
+                  <div className={`${styles.connectorLine} ${index % 2 === 0 ? styles.lineRight : styles.lineLeft}`} />
                 )}
-              </button>
-              
-              {index < LEVELS_DATA.length - 1 && (
-                <div className={`${styles.connectorLine} ${index % 2 === 0 ? styles.lineRight : styles.lineLeft}`} />
-              )}
-            </div>
-          );
-        })}
+              </div>
+            );
+          })}
+        </div>
       </div>
+      
     </div>
   );
 }

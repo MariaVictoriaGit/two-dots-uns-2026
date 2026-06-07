@@ -236,6 +236,22 @@ function Game() {
     setMoves(null);
     setObjectives({});
   }
+  const isAnimating = waiting || historyGrid !== undefined;
+  const gameStarted = grid !== null && moves !== null && Object.keys(objectives).length > 0;
+
+  const isVictory = gameStarted && Object.values(objectives).every(val => val! <= 0);
+  const isDefeat = gameStarted && moves !== null && moves <= 0 && !isVictory;
+
+  const showGameOver = !isAnimating && (isVictory || isDefeat);
+
+  useEffect(() => {
+    if (isVictory) {
+      setMaxUnlockedLevel(prevMax => {
+        const nextId = levelId + 1;
+        return nextId > prevMax ? nextId : prevMax;
+      });
+    }
+  }, [isVictory, levelId]);
 
   // No muestres nada hasta que el servidor de Prolog esté listo (alternativamente, renderiza una interfaz de carga).
   if (!pengine) {
@@ -273,14 +289,7 @@ function Game() {
     return null;
   }
 
-  const isAnimating = waiting || historyGrid !== undefined;
-  const gameStarted = grid !== null && moves !== null && Object.keys(objectives).length > 0;
-
-  const isVictory = gameStarted && Object.values(objectives).every(val => val! <= 0);
-  const isDefeat = gameStarted && moves !== null && moves <= 0 && !isVictory;
-
-  const showGameOver = !isAnimating && (isVictory || isDefeat);
-
+  
   // --- LÓGICA DE FEEDBACK VISUAL ---
   // 1. Identificamos qué color está seleccionando el jugador
   const currentColorContent = path.length > 0 && grid
@@ -401,11 +410,7 @@ function Game() {
           onResume={() => setIsPaused(false)}
           onToggleMute={() => setIsMuted(!isMuted)}
           onNextLevel={() => {
-            setLevelId(prevLevel => {
-              const nextId = prevLevel + 1;
-              setMaxUnlockedLevel(prevMax => nextId > prevMax ? nextId : prevMax);
-              return nextId;
-            });
+            setLevelId(prevLevel => prevLevel + 1); 
             resetGameState();
             initGame();
           }}
@@ -416,7 +421,7 @@ function Game() {
           onMainMenu={() => {
             resetGameState();
             setIsPaused(false);
-            setCurrentScreen('mainMenu');
+            setCurrentScreen('levelSelector');
           }}
         />
       )}

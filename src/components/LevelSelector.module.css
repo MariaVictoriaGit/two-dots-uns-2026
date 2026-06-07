@@ -1,23 +1,36 @@
+/* Contenedor principal*/
 .menuContainer {
   display: flex;
   flex-direction: column;
   background: #3a5783;
   align-items: center;
-  min-height: 100vh;
-  padding: 60px 20px;
-  box-sizing: border-box;
-  overflow-y: auto; 
   height: 100vh; 
+  overflow: hidden; 
+  box-sizing: border-box;
+}
+
+/* barra superior estática */
+.topBar {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 40px;
+  padding-bottom: 20px;
+  background: #3a5783; 
+  z-index: 100;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2); 
+  position: relative;
 }
 
 .header {
   text-align: center;
-  margin-bottom: 60px;
+  margin-bottom: 0; /* Le sacamos el margen porque ahora está en la topBar */
 }
 
 .backButton {
   position: absolute;
-  top: 24px;
+  top: 40px; /* Ajustado para el topBar */
   left: 24px;
   background: transparent;
   border: none;
@@ -30,7 +43,7 @@
   gap: 8px;
   cursor: pointer;
   transition: all 0.2s;
-  z-index: 10;
+  z-index: 110;
 }
 
 .backButton:hover {
@@ -54,7 +67,7 @@
 }
 
 .title span {
-  color: #fecd6c; /* Tono pastel del juego */
+  color: #fecd6c; 
 }
 
 .subtitle {
@@ -64,13 +77,32 @@
   margin: 0;
 }
 
-/* Distribución del camino de niveles */
+
+.scrollArea {
+  flex: 1; /* Ocupa todo el espacio sobrante debajo del topBar */
+  width: 100%;
+  overflow-y: auto; /* Acá ocurre el scroll */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 20px;
+  background-image:
+  linear-gradient(
+      rgba(58, 87, 131, 0.6), 
+      rgba(58, 87, 131, 0.9)
+    ),
+  url('/lib/imágenes/fondo-pasto.png'); 
+  background-repeat: repeat-y; 
+  background-size: 100% auto;
+}
+
+
+/* Distribución del camino de niveles (Ancho fijo para que encaje el caminito) */
 .mapPath {
   display: flex;
-  flex-direction: column; /* Los niveles bajan */
-  gap: 70px;
-  width: 100%;
-  max-width: 320px;
+  flex-direction: column; 
+  gap: 80px; 
+  width: 280px; /* Medida clave fija */
   position: relative;
 }
 
@@ -106,9 +138,9 @@
   letter-spacing: 0.05em;
 }
 
-/* Estados desbloqueados (Estilo pastel interactivo) */
+/* Estados desbloqueados */
 .levelButton[data-unlocked="true"] {
-  background-color: #2cac75; /* Cambia dinámicamente si querés por nivel */
+  background-color: #2cac75; 
   color: #ffffff;
 }
 
@@ -128,33 +160,33 @@
 }
 
 .levelNumber {
-  font-size: 1.3rem;
+  font-size: 1.4rem;
   font-weight: 800;
 }
 
-/* Líneas conectoras punteadas */
+/* ================================================================== */
+/* LÍNEAS CONECTORAS DINÁMICAS (Matemática central exacta de 32px)     */
+/* ================================================================== */
 .connectorLine {
   position: absolute;
-  width: 140px;
-  height: 90px;
-  border: 3px dashed rgba(255, 255, 255, 0.25);
+  width: 216px;   
+  height: 144px;  
+  top: 32px;      
+  left: 32px;     
   z-index: 1;
   pointer-events: none;
+  
+  background-image: url('/lib/imágenes/caminito.png'); 
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  background-position: center;
 }
 
-/* Curvas o diagonales simuladas para conectar el zig-zag */
 .lineRight {
-  top: 45px;
-  left: 45px;
-  border-top: none;
-  border-left: none;
-  border-bottom-right-radius: 40px;
+  transform: scaleY(1); /* Caminito original*/
 }
 
 .lineLeft {
-  top: 45px;
-  right: 45px;
-  border-top: none;
-  border-right: none;
-  border-bottom-left-radius: 40px;
+  transform-origin: center;
+  transform: scaleY(-1); /* Espeja el caminito en eje Y */
 }

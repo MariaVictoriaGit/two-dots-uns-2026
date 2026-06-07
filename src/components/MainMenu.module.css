@@ -2,10 +2,19 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  background: #3a5783;
   align-items: center;
   min-height: 100vh;
   padding: 40px 20px;
+  background: 
+  linear-gradient(
+      rgba(58, 87, 131, 0.6), 
+      rgba(58, 87, 131, 0.9)
+    ),
+    url('/lib/imágenes/menu-fondo.png');
+    
+  background-size: cover; /* Estira la imagen para cubrir toda la pantalla */
+  background-position: center bottom; /* Centra la imagen y la ancla abajo */
+  background-repeat: no-repeat;
 }
 
 .menu {

@@ -2,7 +2,16 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  background: #3a5783;
+
+  background:
+    linear-gradient(
+      rgba(58, 87, 131, 0.6), 
+      rgba(58, 87, 131, 0.9)
+    ),
+    url('/lib/imágenes/fondo-juego.png');
+    background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   align-items: center;
   min-height: 100vh; 
   padding: 40px 20px; 
