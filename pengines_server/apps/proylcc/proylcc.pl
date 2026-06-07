@@ -229,19 +229,30 @@ es_cerrado([_|Resto]) :-
 % Encontrar posiciones de bombas usando Flood Fill desde los bordes
 % encontrar_posiciones_bombas(+Path, +NumOfColumns, +Grid, -IndicesBombas)
 encontrar_posiciones_bombas(Path, NumOfColumns, Grid, IndicesBombas) :-
+    extraer_loop(Path, Loop),
     length(Grid, TotalCells),
     bordes_grilla(TotalCells, NumOfColumns, Bordes),
     
-    % Le "restamos" a los Bordes todos los puntos que estén en el Path
-    subtract(Bordes, Path, BordesLibres),
+    % Le "restamos" a los Bordes todos los puntos que estén en el Loop (la figura cerrada real)
+    subtract(Bordes, Loop, BordesLibres),
    
-    inundar(BordesLibres, Path, NumOfColumns, Grid, [], Exterior),
+    inundar(BordesLibres, Loop, NumOfColumns, Grid, [], Exterior),
     MaxI is TotalCells - 1,
     findall(I, (
         between(0, MaxI, I),
-        \+ member(I, Path),
+        \+ member(I, Path), % No ponemos bombas en lugares que son parte del Path original
         \+ member(I, Exterior)
     ), IndicesBombas).
+
+% Extrae únicamente la parte del Path que forma el ciclo cerrado
+% extraer_loop(+Path, -Loop)
+extraer_loop(Path, Loop) :-
+    last(Path, Ultimo),
+    extraer_desde(Ultimo, Path, Loop).
+
+extraer_desde(E, [E|Resto], [E|Resto]) :- !.
+extraer_desde(E, [_|Resto], Loop) :-
+    extraer_desde(E, Resto, Loop).
 
 
 % Encontrar todas las posiciones de los bordes de la grilla sin duplicados
