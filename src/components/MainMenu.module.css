@@ -10,7 +10,7 @@
       rgba(58, 87, 131, 0.6), 
       rgba(58, 87, 131, 0.9)
     ),
-    url('/lib/imágenes/menu-fondo.png');
+    url('/lib/imágenes/fondo-menu.png');
     
   background-size: cover; /* Estira la imagen para cubrir toda la pantalla */
   background-position: center bottom; /* Centra la imagen y la ancla abajo */
