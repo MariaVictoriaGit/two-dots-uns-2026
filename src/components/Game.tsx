@@ -240,7 +240,7 @@ function Game() {
   const gameStarted = grid !== null && moves !== null && Object.keys(objectives).length > 0;
 
   const isVictory = gameStarted && Object.values(objectives).every(val => val! <= 0);
-  const isDefeat = gameStarted && moves !== null && moves <= 0 && !isVictory;
+  const isDefeat = gameStarted && !isVictory && moves !== null && moves <= 0 ;
 
   const showGameOver = !isAnimating && (isVictory || isDefeat);
 

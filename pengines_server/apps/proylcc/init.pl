@@ -98,7 +98,7 @@ init_level(N, Grid, Cols, Goals, Moves) :-
     
     ObjetivoColor is min(CeldasJugables - 10 , 15 + N),
     
-    MaxAgua is floor(CeldasJugables * 0.85),
+    MaxAgua is floor(CeldasJugables * 0.85) - CantAgua,
     random(ObjetivoColor, MaxAgua , AguaRandom),
     ObjetivoAgua is AguaRandom,
     
