@@ -23,7 +23,7 @@ Principalmente gestionando que se verifique un camino válido de un único color
 
 ### 3.1) Representación de la grilla:
 
-En principio, utilizamos la representación de la grilla completa como una lista plana unidimensional, donde cada posición representa una celda identificada mediante un índice. A partir de `NumOfColumns`, se reconstruyen las relaciones espaciales utilizando operaciones aritméticas sobre dichos índices, en lugar de acceder a posiciones por cercanía directa. De modo que, la proximidad se determinan lógicamente, determinando si son vecinos ortogonales (arriba, abajo, izquierda y derecha),asì optimizando el rendimiento la validación de caminos (`camino_valido`), la simulación de la gravedad y expansión geométrica del agua.
+En principio, utilizamos la representación de la grilla completa como una lista plana unidimensional, donde cada posición representa una celda identificada mediante un índice. A partir de `NumOfColumns`, se reconstruyen las relaciones espaciales utilizando operaciones aritméticas sobre dichos índices, en lugar de acceder a posiciones por cercanía directa. De modo que, la proximidad se determinan lógicamente, determinando si son vecinos ortogonales (arriba, abajo, izquierda y derecha), asì optimizando el rendimiento la validación de caminos (`camino_valido`), la simulación de la gravedad y expansión geométrica del agua.
 
 #### Aspecto destacado:
 
@@ -89,6 +89,11 @@ Una vez creadas las bombas, el sistema aplica la gravedad sobre la grilla. Poste
 La explosión de las bombas se encuentra concentrada en el predicado `explosionar_bomba/5`, el cual integra simultáneamente la eliminación de puntos, la propagación de agua, la actualización de objetivos y la aplicación de una gravedad secundaria.
 Al gatillar la detonación, por medio del predicado `adyacente_bomba/4`, se determinan las celdas que son vecinas a la bomba. El sistema determina de forma exacta el conjunto de índices alcanzados por la onda expansiva, correspondiente a un área de impacto de 3×3, tal que al explotar se aplica por segunda vez la gravedad. 
 
+![BombaNormal1](docs/images/casosDePrueba/Prolog/BombaNormal1.png)
+![BombaNormal2](docs/images/casosDePrueba/Prolog/BombaNormal2.png)
+![BombaNormal3](docs/images/casosDePrueba/Prolog/BombaNormal3.png)
+![BombaNormal4](docs/images/casosDePrueba/Prolog/BombaNormal4.png)
+
 ### 3.10) Agua:
 
 El agua se modela como una propiedad especial que complementa las celdas con puntos. La eliminación de el punto en la celda sin agua que sea vecina ortogonal a una celda con agua, ya sea por un camino válido, bomba o power up, la eliminación ocasionará un cambio permanente en esa celda. Además, la expansión del agua computa de forma inmediata nuevos logros hacia los objetivos de la partida.
@@ -105,13 +110,16 @@ El estado de la partida se controla mediante la interacción entre Prolog y Reac
 
 Se produce una vez todos los objetivos del nivel fueron satisfechos, entonces se finaliza la partida.
 
+![Victoria](docs/images/casosDePrueba/React/Victoria.png)
+
 #### 3.11.2) **Flujos de Derrota:**
 
 Ocurre en dos situaciones:
-   
+
 #### 3.11.2.1) **Sin movimientos restantes:**
 
 El contador de movimientos llegó a cero.
+![Derrota](docs/images/casosDePrueba/React/Derrota.png)
 
 #### 3.11.2.2) **Sin jugadas posible(deadlock):**
 
@@ -129,28 +137,6 @@ Entonces, si después de varios intentos continúa sin existir ninguna jugada v�
 
 La lógica de detección y recuperación se enfoca en `juntar_efectos_con_mezcla/4` permitiendo realizar un comportamiento donde se intenta salvar automáticamente una partida bloqueada antes de darla por perdida.
 
-## 4) Casos de Prueba generales:
-
-### 4.1) :
-
-### 4.2) :
-
-### 4.3) :
-
-### 4.4) :
-
-### 4.5) :
-
-### 4.6) :
-
-### 4.7) :
-
-### 4.8) :
-
-### 4.9) :
-
-### 4.10) :
-
 ## 5) Aspectos modificados(Nuevas funcionalidades en Prolog):
 
 ### 5.1) Generación de nuevos niveles:
@@ -160,30 +146,44 @@ Alteración del archivo init: no se ha modificado el esquema de representación 
 ### 5.2) Eliminación de todo un color sin necesidad de un camino cerrado:
 
 Imitación del comportamiento de **Two dots** tal que si se unen 13 puntos del mismo color, elimina todos los puntos del mismo color. Esto fue agregado en la definición del `conect/4` para eliminar todos los puntos del color seleccionado, asegurando poder eliminar todas las presencias de un mismo color sin un camino cerrado, ni bombas.
-(imágenes)
 
+![13Puntos1](docs/images/casosDePrueba/Prolog/13Puntos1.png)
+![13Puntos2](docs/images/casosDePrueba/Prolog/13Puntos2.png)
+![13Puntos3](docs/images/casosDePrueba/Prolog/13Puntos3.png)
+![13Puntos4](docs/images/casosDePrueba/Prolog/13Puntos4.png)
+![13Puntos5](docs/images/casosDePrueba/Prolog/13Puntos5.png)
 
 ### 5.3) Definición de Power Ups:
 Con el fin de ser los más fieles posibles al juego original definimos 5 power ups:
 
 #### 5.3.1) Borrador:
 
-Este permite eliminar el punto de una celda específica arbitrariamente. Su lógica se determina por medio de la selección de la celda a eliminar `color en(Grid, TargetIdx, Color)` para proceder a realizar la eliminación específica con `eliminacion_simple/6`, para finalmente estabilizar/chequear el tablero como cualquier otra jugada realizada.
+Este permite eliminar el punto de una celda específica arbitrariamente. Su lógica se determina por medio de la selección de la celda a eliminar `color_en(Grid, TargetIdx, Color)` para proceder a realizar la eliminación específica con `eliminacion_simple/6`, para finalmente estabilizar/chequear el tablero como cualquier otra jugada realizada.
+
+![PowerUpBorrar1](docs/images/casosDePrueba/React/PowerUps/PowerUpBorrar1.png)
+![PowerUpBorrar2](docs/images/casosDePrueba/React/PowerUps/PowerUpBorrar2.png)
  
 #### 5.3.2) Borrar_color:
 
 Este power up permite eliminar toda presencia de el color seleccionado, tal que una vez seleccionado se delega la eliminación al predicado `eliminar_color/7`. Este predicado realiza un recorrido tal que barre la grilla para eliminar cada coincidencia presente.
 Lo más relevante de su lógica es cómo empaqueta sus consecuencias: calcula cuántos puntos se destruyeron `CantidadRealColor` y qué cantidad de agua se expandió `CantidadAgua`, unificando ambos datos dentro del término secuencial `achieved/1`. Tras aplicar la física de `gravedad/3`, el estado final es sometido a `juntar_efectos_con_mezcla/4`, evaluando de forma predictiva si la eliminación masiva dejó la grilla sin movimientos posibles (deadlock).
 
+![PowerUpBorrarUnColor1](docs/images/casosDePrueba/React/PowerUps/PowerUpBorrarUnColor1.png)
+![PowerUpBorrarUnColor2](docs/images/casosDePrueba/React/PowerUps/PowerUpBorrarUnColor2.png)
+
 #### 5.3.3) Cruz:
 
 Este power up es un potenciador permite seleccionar una celda específica tal que de la misma se eliminen todos los puntos de sus respectivas columna y fila, así formando la cruz. Su lógica se divide en dos fases: el cálculo espacial y la resolución de efectos.Primero, mediante operaciones de división entera y módulo aplicadas en combinación con `findall/3` y `nth0/3`, el predicado `indices_en_cruz/4` recolecta un `PathCruz` con todos los índices que compartan su misma fila o columna. En segundo lugarm se caluclan los elementos eliminados `contar_colores_destruios`, se actualiza el agua y se actualizan los logros combinados en una estructura condicional `append/3`.
+
+![PowerUpCruz1](docs/images/casosDePrueba/React/PowerUps/PowerUpCruz1.png)
+![PowerUpCruz2](docs/images/casosDePrueba/React/PowerUps/PowerUpCruz2.png)
 
 #### 5.3.4) Mezclar:
 
 Su función a diferencia de los anteriores depende de reorganizar todos los puntos presentes en la grilla, sin destruirlos. Su lógica se invoca a `mezclar_grilla_segura/3` para realizar la mezcla, sin alterar la presencia de agua en las celdas que ya poseen agua. Tras reordenar la matriz, evalúa inmediatamente si la nueva configuración posee combinaciones válidas mediante `hay_movimientos/2`. Si la mezcla aleatoria abre caminos transitables, devuelve la nueva grilla con efectos limpios; si el algoritmo falla y constata que ni siquiera la redistribución salvó el juego, inyecta de forma fulminante la bandera analítica `[deadlock]`, notificando a React que debe finalizar la partida.
 
-### 5.4)
+![PowerUpMezclar1](docs/images/casosDePrueba/React/PowerUps/PowerUpMezclar1.png)
+![PowerUpMezclar2](docs/images/casosDePrueba/React/PowerUps/PowerUpMezclar2.png)
 
 ## 6) Aspectos modificados en React:
 
@@ -191,60 +191,46 @@ Su función a diferencia de los anteriores depende de reorganizar todos los punt
 
 Se incorporó un sistema de navegación compuesto por distintas pantallas para mayor fidelidad al juego original. Se cuenta con un menú principal `MainMenu`, un selector de niveles `LevelSelector` y la pantalla original de juego `Game`. De este modo la interacción de juego se extiende a más que solamente completar una partida preestablecida. La interfaz también incluye ventanas modales para representar los distintos estados del juego, como pausa, victoria o derrota, mediante el componente `GameOverModal`.
 
+![`MainMenu`](docs/images/casosDePrueba/React/MainMenu.png)
+![`LevelSelector`](docs/images/casosDePrueba/React/LevelSelector.png)
+![`Game`](docs/images/casosDePrueba/React/Game.png)
+![`GameOverModal`](docs/images/casosDePrueba/React/GameOverModal.png)
+
 ### 6.2) Mecánicas de juego incorporadas:
 
 Se implementaron las respectivas representaciones en React para los Power ups, contando con animaciones si así lo ameritan.
+
+![PowerUps](docs/images/casosDePrueba/PowerUps.png)
 
 ### 6.3) Aspectos visuales:
 
 Se realizaron ajustes visuales tales como la tonalidad de los puntos mediante la inserción de imágenes propias, la animación del agua y su renderización al expandirse. Intentamos mantener una paleta de colores coherente en los fondos, botones y elementos de interfaz. Agregamos una animación de expansión que acompaña la expansión de las bombas, otra a la hora de renderizar la gravedad, íconos personalizados para los power ups e interfaz de usuario y decidimos irnos por una estética "3D" falsa.
 
-## 6.6) Gestión de audio:
+### 6.4) Gestión de audio: 
 
+[useAudio.ts](\src\components\useAudio.ts)
 Se incorporó un sistema de reproducción musical basado en el hook personalizado `useAudio`. Este componente administra la creación y destrucción de los objetos de audio, reproduce música únicamente durante las partidas activas y permite al usuario activar o silenciar el sonido desde la interfaz.
 
-## 7) Desafíos encontrados:
+### 6.5) Modularizacion de `game.tsx`: 
 
-Durante el desarrollo surgieron diversos desafíos técnicos, tales como:
 
-### 7.1) Modelado de las celdas:
 
-Al inicio del proyecto uno de los principales desafíos fue aprender a trabajar con la representación interna de las celdas, detalle primordial para todo el manejo de la grilla. Así permitiendo más sencillez en la discriminacion de los componentes internos de la celda, con tal de que no se arrastran errores en la expansión del agua y explosiones(especialmente en relación a obstáculos).
+## 7) Dificultades:
 
-### 7.2) Partición en segmentos:
+### 7.1) 
+**Propagación recursiva del agua:** uno de los desafíos fue implementar la expansión del agua en cadena, donde la eliminación de un punto mojado debe propagarse a sus adyacentes, y estos a los suyos sucesivamente. Implementamos esto mediante Búsqueda en Profundidad (DFS) recursiva. Para evitar ciclos infinitos en grillas con muchos elementos de agua conectados; mantenemos una lista de visitados, garantizando que cada celda sea procesada una sola vez por jugada.
 
-La implementación de la gravedad obligó a transformar constantemente la representación de la grilla entre distintos formatos. Aspecto que en inicio se complejizan en relación a la partición de la única lista que gestiona la grilla de modo que segmento, transponga y actualicen las columnas según las reacciones correspondientes por jugada.
+### 7.2)
+**Gestión de obstáculos y delimitación:** Inicialmente, el agua se expandía erróneamente sobre celdas con obstáculos. Para corregirlo, implementamos una lógica de validación preventiva basada en una Búsqueda en Amplitud (BFS) para el control de fronteras. Antes de realizar cualquier expansión, el predicado `es_obstaculo/1` actúa como una barrera lógica, asegurando que el flujo de agua se detenga al detectar celdas delimitadoras ([-]).
 
-### 7.3) Expansión del agua mediante bombas:
+### 7.3)
+**Formación de bombas:** Tuvimos que experimentar con varios algoritmos para lograr una generación de bombas efectiva y completa.
+Fue complicado encontrar un balance que garantice la detección de bombas que no deje casos afuera ni meta casos de más. Al tener varios casos particulares (como la "falsa bomba" mencionada), tuvimos que poner más controles de los que pensamos. Si poníamos controles de más, por otra parte, había casos válidos que no nos consideraba, como por ejemplo un polígono cerrado con una "punta" fuera del cuadrado. 
 
-La interacción entre las mecánicas de agua y explosiones presentó uno de los mayores desafíos de integración lógica, debido a la necesidad de coordinar múltiples transformaciones simultáneas sobre la grilla......
-
-### 7.4)
-
-## 8) Conclusiones:....................
+![FalsaBomba1](docs/images/casosDePrueba/Prolog/FalsaBomba1.png)
+![FalsaBomba2](docs/images/casosDePrueba/Prolog/FalsaBomba2.png)
+![FalsaBomba3](docs/images/casosDePrueba/Prolog/FalsaBomba3.png)
+89
+## 9) Conclusiones:
 
 En conclusión, el presente proyecto nos permite comprender la comunicación entre distintas tecnologías mediante capas, manejandose con diversos niveles de expresividad con un enfoque a una arquitectura clara. Así pudiendo trabajar desacopladas de la representación visual, favoreciendo la extensibilidad y el mantenimiento del juego.
-
-////////////////////////////////////////////////////////////////////////////////////
-Al probar los casos revisar de cero:(asi desp los metemos en los ejemplos con las capturas)
-* encerrar agua
-* encerrar obstáculos
-* encerrar espacios vacíos
-* la bomba cae una posición
-* la bomba cae varias posiciones
-* la bomba atraviesa huecos
-* la bomba es eliminada directamente
-* la bomba explota por otra explosion
-* bomba en borde superior
-* bomba en borde inferior
-* bomba en borde izquierdo
-* bomba en borde derecho
-* bomba en esquina superior izquierda
-* bomba en esquina superior derecha
-* bomba en esquina inferior izquierda
-* bomba en esquina inferior derecha
-* los elementos especiales no pueden convertirse en bombas
-* espacio aislado
-* espacios consecutivos
-* espacios en bordes
-* expansión de agua cerca de obstáculos
