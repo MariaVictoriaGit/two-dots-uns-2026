@@ -183,8 +183,6 @@ Imitación del comportamiento de **Two dots** tal que si se unen 13 puntos del m
 ### 5.3) Definición de Power Ups:
 Con el fin de ser los más fieles posibles al juego original definimos 4 power ups:
 
-INSERTE CAP USO POWERAP
-
 ![pw1](images/codigo/pw1.jpeg)
 ![pw2](images/codigo/pw2.jpeg)
 
