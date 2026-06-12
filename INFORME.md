@@ -1,23 +1,23 @@
-# Informe — Proyecto Two Dots
+## Informe — Proyecto Two Dots
 
 ## 1) Introducción:
 
-El proyecto se basa en implementación web del juego **Two Dots**, un juego de tipo **puzzles** basado en una grilla de puntos de colores. Estos puntos deben ser conectados según sus respectivos colores para ser eliminados, generando distintas reacciones según la forma de la jugada realizada.
+El proyecto consiste en la implementación web del juego **Two Dots**, un juego de tipo **puzzles** basado en una grilla de puntos de colores. Estos puntos deben ser conectados según sus respectivos colores para ser eliminados, generando distintas reacciones según la forma de la jugada realizada.
 
 Para su desarrollo se utilizaron dos tecnologías principales:
 - **Prolog**, para la lógica del juego,
 - **React**, para la representación visual y la interacción con el usuario del juego.
 
-Esta combinación que permite separar claramente responsabilidades:
-- Prolog, como lenguaje representativo del paradigma lógico, se utiliza para modelar el estado del juego y sus comportamientos, por medio de hechos reglas y consultas sobre la grilla. Trabajando bajo estrategias basadas en unificación, recursión y backtracking.
-- React, se utiliza para construir la interfaz mediante componentes reutilizables, encargándose de representar la grilla y la interacción con el usuario.
+Esta combinación permite separar claramente responsabilidades:
+- Prolog como lenguaje representativo del paradigma lógico, se utiliza para modelar el estado del juego y sus comportamientos por medio de hechos, reglas y consultas sobre la grilla. Trabaja bajo estrategias basadas en unificación, recursión y backtracking.
+- React, se utiliza para construir la interfaz mediante componentes reutilizables, encargándose de representar la grilla, factores estéticos y la interacción con el usuario.
 
 ## 2) Arquitectura general:
 La lógica principal del juego se implementa en el archivo [`proylcc.pl`](/pengines_server/apps/proylcc/proylcc.pl), mientras que la interfaz se desarrolla en React.
 
 La comunicación entre las dos capas se realiza mediante el predicado `connect/4`, que recibe la información clave tal que funciona como el motor de cada jugada realizando un mapeo entre el exterior y el interior del juego.
 
-Principalmente gestionando que se verifique un camino válido de un único color, para posteriormente reaccionar según corresponda(camino abierto cerrado o camino cerrado con puntos internos para bombas). Asì de forma ordenada, una vez reacciono como corresponde según el caso, se aplica la gravedad y en caso de poseer bombas, las mismas explotan.
+Principalmente gestionando que se verifique un camino válido de un único color, para posteriormente reaccionar según corresponda(camino abierto cerrado o camino cerrado con puntos internos para bombas). Así de forma ordenada, una vez reacciono como corresponde según el caso, se aplica la gravedad y en caso de poseer bombas, las mismas explotan.
 
 ## 3) Implementación en Prolog:
 
@@ -74,21 +74,20 @@ Los objetivos se calculan directamente durante la resolución de la jugada en `c
 
 ### 3.8) Formas cerradas:
 
-Las formas cerradas constituyen uno de los puntos claves para el funcionamiento del juego, tal que se busca detectar desde el `connect/4`. A estas se las detecta inicialmente en el predicado `es_cerrado/1`, el cual evalúa recursivamente la lista de índices del camino (`Path`) para verificar si alguna coordenada se repite en el recorrido, verificando la existencia de un bucle. Entonces, en caso afirmativo se procede a eliminar todos los puntos de el color correspondiente por medio de `eliminar_color/7`, se evalúa y realiza la expansión del agua correspondiente (en las zonas que sea necesario expandirse), antes de finalmente aplicarse los efectos de la eliminación ejecutando la gravedad.
+Las formas cerradas constituyen uno de los puntos claves para el funcionamiento del juego, tal que se busca detectar desde el `connect/4`. Esto se logra iniciando en el predicado `es_cerrado/1`, el cual evalúa recursivamente la lista de índices del camino (`Path`) para verificar si alguna coordenada se repite un el recorrido con longitud mayor a 2, verificando la existencia de un bucle. En caso afirmativo, se procede a eliminar todos los puntos de el color correspondiente por medio de `eliminar_color/7`, se evalúa y realiza la expansión del agua correspondiente (en las zonas que sea necesario), antes de finalmente aplicarse los efectos de la eliminación y la gravedad.
 
 #### Aspecto destacado:
-
 El procesamiento de una forma cerrada constituye la única condición del juego para crear bombas. Durante la transformación masiva de la grilla, el motor de Prolog calcula una coordenada de anclaje dentro del perímetro del bucle para inyectar el modificador estructurado `[Color, bomba]`.
 
 ### 3.9) Bombas:
 
-Las bombas constituyen un mecanismo central dentro de la lógica de formas cerradas del juego. Cuando un camino resulta ser cerrado, el sistema detecta automáticamente todas las posiciones encerradas mediante un algoritmo de *Flood Fill*. Toda forma cerrada de dimensiones iguales o mayores a 3×3 genera bombas en las celdas atrapadas, transformando dichas posiciones mediante el predicado `colocar_bombas_en_grid/3`.
-
-Una vez creadas las bombas, el sistema aplica la gravedad sobre la grilla. Posteriormente, las bombas explotan automáticamente y, tras la detonación, se ejecuta nuevamente la gravedad para rellenar los espacios vacíos generados por la explosión.
-
-La lógica principal de este proceso se encuentra concentrada en el predicado `explosionar_bomba/5`, el cual integra simultáneamente la eliminación de puntos, la propagación de agua, la actualización de objetivos y la aplicación de una gravedad secundaria.
-
-Al gatillar la detonación, por medio del predicado `indices_en_cruz/4` se determinan las celdas que son vecinas a la bomba, y utilizando la constante `NumOfColumns`, el sistema determina de forma exacta el conjunto de índices alcanzados por la onda expansiva, correspondiente a un área de impacto de 3×3. Tal que finalmente explota y se aplica por segunda vez la gravedad. Finalizando el ciclo de vida de la bomba.
+Las bombas constituyen un mecanismo central dentro de la lógica de formas cerradas del juego. Una vez se verifica la condición de ser cerrado, se procede a revisar cuáles puntos quedaron adentro del área cerrada para convertirlos en bomba. Esto ocurre en el método **`encontrar_posiciones_bombas/4`**.
+Primero, **`extraer_loop/2`** recorta el camino original para quedarse estrictamente con el anillo cerrado, ya que tuvimos problemas con Paths que contenían una forma cerrada que, aunque no contenía una bomba adentro, generaba falsas bombas. IMÁGEN FALSA BOMBA.
+Una vez comprobamos eso, **`bordes_grilla/3`** identifica absolutamente todas las celdas que están en el perímetro de todo el tablero (fila 0, última fila, columna 0, última columna). Y, desde ahí, mediante un algoritmo de *Flood Fill* (`inundar/6`), se "inunda" todo lo que es el exterior. Finalmente, si la celda no forma parte de Path ni de la inundación, se deduce que es bomba y genera los `IndicesBombas`.
+Con los índices ya establecidos, se invoca `colocar_bombas_en_grid/3`.
+Una vez creadas las bombas, el sistema aplica la gravedad sobre la grilla. Posteriormente, las bombas explotan y, tras la detonación, se ejecuta nuevamente la gravedad para rellenar los espacios vacíos generados por la explosión.
+La explosión de las bombas se encuentra concentrada en el predicado `explosionar_bomba/5`, el cual integra simultáneamente la eliminación de puntos, la propagación de agua, la actualización de objetivos y la aplicación de una gravedad secundaria.
+Al gatillar la detonación, por medio del predicado `adyacente_bomba/4`, se determinan las celdas que son vecinas a la bomba. El sistema determina de forma exacta el conjunto de índices alcanzados por la onda expansiva, correspondiente a un área de impacto de 3×3, tal que al explotar se aplica por segunda vez la gravedad. 
 
 ### 3.10) Agua:
 
@@ -106,17 +105,17 @@ El estado de la partida se controla mediante la interacción entre Prolog y Reac
 
 Se produce una vez todos los objetivos del nivel fueron satisfechos, entonces se finaliza la partida.
 
-#### 3.11.2)**Flujos de Derrota:**
+#### 3.11.2) **Flujos de Derrota:**
 
 Ocurre en dos situaciones:
    
-#### 3.11.2.1)**Sin movimientos restantes:**
+#### 3.11.2.1) **Sin movimientos restantes:**
 
 El contador de movimientos llegó a cero.
 
-#### 3.11.2.2)**Sin jugadas posible(deadlock):**
+#### 3.11.2.2) **Sin jugadas posible(deadlock):**
 
-Esta es una situación clave, ya que tanto por la generación aleatoria de puntos como los posibles formatos de niveles se debía plantear un caso en el que ya no se pudiera actual. Cuando ya no existen combinaciones válidas en la grilla `hay_movimientos/2`, tal que envía la marca `[deadlock]` dentro de los efectos generados, y React finaliza la partida automáticamente mostrando la pantalla de derrota.
+Esta es una situación clave, ya que tanto por la generación aleatoria de puntos como los posibles formatos de niveles se debía plantear un caso en el que ya no se pudiera actuar. Cuando ya no existen combinaciones válidas en la grilla `hay_movimientos/2`, tal que envía la marca `[deadlock]` dentro de los efectos generados, y React finaliza la partida automáticamente mostrando la pantalla de derrota.
 
 Además es importante aclarar el intento de recuperación automática: 
 
@@ -194,11 +193,11 @@ Se incorporó un sistema de navegación compuesto por distintas pantallas para m
 
 ### 6.2) Mecánicas de juego incorporadas:
 
-Se implementaron las respectivas representaciones en React para los Power ups.
+Se implementaron las respectivas representaciones en React para los Power ups, contando con animaciones si así lo ameritan.
 
 ### 6.3) Aspectos visuales:
 
-Se realizaron ajustes visuales tales como la tonalidad de los puntos, la animación del agua y su renderización.
+Se realizaron ajustes visuales tales como la tonalidad de los puntos mediante la inserción de imágenes propias, la animación del agua y su renderización al expandirse. Intentamos mantener una paleta de colores coherente en los fondos, botones y elementos de interfaz. Agregamos una animación de expansión que acompaña la expansión de las bombas, otra a la hora de renderizar la gravedad, íconos personalizados para los power ups e interfaz de usuario y decidimos irnos por una estética "3D" falsa.
 
 ## 6.6) Gestión de audio:
 
