@@ -12,7 +12,7 @@ Esta combinación permite separar claramente responsabilidades:
 - Prolog como lenguaje representativo del paradigma lógico, se utiliza para modelar el estado del juego y sus comportamientos por medio de hechos, reglas y consultas sobre la grilla. Trabaja bajo estrategias basadas en unificación, recursión y backtracking.
 - React, se utiliza para construir la interfaz mediante componentes reutilizables, encargándose de representar la grilla, factores estéticos y la interacción con el usuario
 ## 2) Arquitectura general:
-La lógica principal del juego se implementa en el archivo [`proylcc.pl`](/pengines_server/apps/proylcc/proylcc.pl), mientras que la interfaz se desarrolla en React.
+La lógica principal del juego se implementa en el archivo [`proylcc.pl`](../pengines_server/apps/proylcc/proylcc.pl), mientras que la interfaz se desarrolla en React.
 
 La comunicación entre las dos capas se realiza mayormente en el archivo Game.tsx, el que se nos hizo muy extenso y decidimos dividir en más archivos, especificado en 6.5).
 
@@ -27,18 +27,18 @@ Para las modificaciones, nunca se modifica el estado original, sino que se const
 
 Las celdas no se modelan como objetos, sino como listas de propiedades. Esto permite representar múltiples estados simultáneamente (por ejemplo color, agua ([color, agua]) o bombas([color, bomba])) de forma flexible y extensible. Además de que React utiliza esos `Effects` para: actualizar el progreso del nivel, animar objetivos cumplidos y reacciones (tanto en la grilla internamente como visualmente).
 
-![gravedad1](docs/images/codigo/gravedad1.jpeg)
-![gravedad2](docs/images/codigo/gravedad2.jpeg)
-![gravedad3](docs/images/codigo/gravedad3.jpeg)
+![gravedad1](images/codigo/gravedad1.jpeg)
+![gravedad2](images/codigo/gravedad2.jpeg)
+![gravedad3](images/codigo/gravedad3.jpeg)
 
 ### 3.2) Conexión de puntos:
 
 La conexión de puntos se basa en la construcción de un camino (`Path`) formado por índices numéricos consecutivos sobre la grilla plana. Para que una jugada sea válida, el sistema verifica que cada punto del camino sea obligatoriamente adyacente al siguiente y que todas las celdas involucradas compartan el mismo color. La adyacencia se calcula utilizando desplazamientos matemáticos sobre los índices, considerando movimientos ortogonales.
 
-![connect1](docs/images/codigo/connect1.jpeg)   
-![connect2](docs/images/codigo/connect2.jpeg)
+![connect1](images/codigo/connect1.jpeg)   
+![connect2](images/codigo/connect2.jpeg)
 
-![auxiliarConnect](docs/images/codigo/auxiliarConnect.jpeg)
+![auxiliarConnect](images/codigo/auxiliarConnect.jpeg)
 
 #### Aspecto destacado:
 
@@ -96,20 +96,20 @@ Una vez creadas las bombas, el sistema aplica la gravedad sobre la grilla. Poste
 La explosión de las bombas se encuentra concentrada en el predicado `explosionar_bomba/5`, el cual integra simultáneamente la eliminación de puntos, la propagación de agua, la actualización de objetivos y la aplicación de una gravedad secundaria.
 Al gatillar la detonación, por medio del predicado `adyacente_bomba/4`, se determinan las celdas que son vecinas a la bomba. El sistema determina de forma exacta el conjunto de índices alcanzados por la onda expansiva, correspondiente a un área de impacto de 3×3, tal que al explotar se aplica por segunda vez la gravedad. 
 
-![bomba1](docs/images/codigo/bomba1.jpeg)
-![bomba2](docs/images/codigo/bomba2.jpeg)
-![bomba3](docs/images/codigo/bomba3.jpeg)
-![bomba4](docs/images/codigo/bomba4.jpeg)
-![bomba5](docs/images/codigo/bomba5.jpeg)
+![bomba1](images/codigo/bomba1.jpeg)
+![bomba2](images/codigo/bomba2.jpeg)
+![bomba3](images/codigo/bomba3.jpeg)
+![bomba4](images/codigo/bomba4.jpeg)
+![bomba5](images/codigo/bomba5.jpeg)
 
-![BombaNormal1](docs/images/casosDePrueba/Prolog/BombaNormal1.png)
-![BombaNormal2](docs/images/casosDePrueba/Prolog/BombaNormal2.png)
-![BombaNormal3](docs/images/casosDePrueba/Prolog/BombaNormal3.png)
-![BombaNormal4](docs/images/casosDePrueba/Prolog/BombaNormal4.png)
+![BombaNormal1](images/casosDePrueba/Prolog/BombaNormal1.png)
+![BombaNormal2](images/casosDePrueba/Prolog/BombaNormal2.png)
+![BombaNormal3](images/casosDePrueba/Prolog/BombaNormal3.png)
+![BombaNormal4](images/casosDePrueba/Prolog/BombaNormal4.png)
 
-![FalsaBomba1](docs/images/casosDePrueba/Prolog/FalsaBomba1.png)
-![FalsaBomba2](docs/images/casosDePrueba/Prolog/FalsaBomba2.png)
-![FalsaBomba3](docs/images/casosDePrueba/Prolog/FalsaBomba3.png)
+![FalsaBomba1](images/casosDePrueba/Prolog/FalsaBomba1.png)
+![FalsaBomba2](images/casosDePrueba/Prolog/FalsaBomba2.png)
+![FalsaBomba3](images/casosDePrueba/Prolog/FalsaBomba3.png)
 
 ### 3.10) Agua:
 
@@ -119,8 +119,8 @@ El agua se modela como una propiedad especial que complementa las celdas con pun
 
 Se incorporaron los predicados: `tiene_agua/1` y `es_obstaculo/1` como capa de abstracción sobre la representación interna de la grilla. Gracias a esta decisión, si en el futuro se modifica la forma de representar agua u obstáculos, únicamente será necesario actualizar dichos predicados sin afectar el resto de la lógica del sistema.
 
-![agua1](docs/images/codigo/agua1.jpeg)
-![agua2](docs/images/codigo/agua2.jpeg)
+![agua1](images/codigo/agua1.jpeg)
+![agua2](images/codigo/agua2.jpeg)
 
 ### 3.11) Fin del juego:
 
@@ -130,7 +130,7 @@ El estado de la partida se controla mediante la interacción entre Prolog y Reac
 
 Se produce una vez todos los objetivos del nivel fueron satisfechos y se finaliza la partida.
 
-![Victoria](docs/images/casosDePrueba/React/Victoria.png)
+![Victoria](images/casosDePrueba/React/Victoria.png)
 
 #### 3.11.2) **Flujos de Derrota:**
 
@@ -140,7 +140,7 @@ Ocurre en dos situaciones:
 
 El contador de movimientos llegó a cero.
 
-![Derrota](docs/images/casosDePrueba/React/Derrota.png)
+![Derrota](images/casosDePrueba/React/Derrota.png)
 
 #### 3.11.2.2) **Sin jugadas posible (deadlock):**
 
@@ -154,11 +154,11 @@ La mezcla reorganiza aleatoriamente las fichas manteniendo intactos obstáculos 
 
 Entonces, si después de varios intentos continúa sin existir ninguna jugada válida, se genera el evento `[deadlock]` que React interpreta como una condición inmediata de derrota.
 
-![verificacion combinacional1](<docs/images/codigo/verificacion combinacional1.jpeg>)
-![verificacion combinacional2](<docs/images/codigo/verificacion combinacional2.jpeg>)
+![verificacion combinacional1](<images/codigo/verificacion combinacional1.jpeg>)
+![verificacion combinacional2](<images/codigo/verificacion combinacional2.jpeg>)
 
-![SinComb1](docs/images/casosDePrueba/Prolog/SinComb1.png)
-![SinComb2](docs/images/casosDePrueba/Prolog/SinComb2.png)
+![SinComb1](images/casosDePrueba/Prolog/SinComb1.png)
+![SinComb2](images/casosDePrueba/Prolog/SinComb2.png)
 
 #### Aspecto destacado:
 
@@ -174,48 +174,48 @@ Alteración del archivo init: no se ha modificado el esquema de representación 
 
 Imitación del comportamiento de **Two dots** tal que si se unen 13 puntos del mismo color, elimina todos los puntos del mismo color. Esto fue agregado en la definición del `connect/4` para eliminar todos los puntos del color seleccionado, asegurando poder eliminar todas las presencias de un mismo color sin un camino cerrado, ni bombas.
 
-![13Puntos1](docs/images/casosDePrueba/Prolog/13Puntos1.png)
-![13Puntos2](docs/images/casosDePrueba/Prolog/13Puntos2.png)
-![13Puntos3](docs/images/casosDePrueba/Prolog/13Puntos3.png)
-![13Puntos4](docs/images/casosDePrueba/Prolog/13Puntos4.png)
-![13Puntos5](docs/images/casosDePrueba/Prolog/13Puntos5.png)
+![13Puntos1](images/casosDePrueba/Prolog/13Puntos1.png)
+![13Puntos2](images/casosDePrueba/Prolog/13Puntos2.png)
+![13Puntos3](images/casosDePrueba/Prolog/13Puntos3.png)
+![13Puntos4](images/casosDePrueba/Prolog/13Puntos4.png)
+![13Puntos5](images/casosDePrueba/Prolog/13Puntos5.png)
 
 ### 5.3) Definición de Power Ups:
 Con el fin de ser los más fieles posibles al juego original definimos 4 power ups:
 
 INSERTE CAP USO POWERAP
 
-![pw1](docs/images/codigo/pw1.jpeg)
-![pw2](docs/images/codigo/pw2.jpeg)
+![pw1](images/codigo/pw1.jpeg)
+![pw2](images/codigo/pw2.jpeg)
 
 #### 5.3.1) Borrador:
 
 Este permite eliminar el punto de una celda específica individualmente. Su lógica se determina por medio de la selección de la celda a eliminar `color_en(Grid, TargetIdx, Color)` para proceder a realizar la eliminación específica con `eliminacion_simple/6`, para finalmente estabilizar/chequear el tablero como cualquier otra jugada realizada.
 
-![PowerUpBorrar1](docs/images/casosDePrueba/React/PowerUps/PowerUpBorrar1.png)
-![PowerUpBorrar2](docs/images/casosDePrueba/React/PowerUps/PowerUpBorrar2.png)
+![PowerUpBorrar1](images/casosDePrueba/React/PowerUps/PowerUpBorrar1.png)
+![PowerUpBorrar2](images/casosDePrueba/React/PowerUps/PowerUpBorrar2.png)
  
 #### 5.3.2) Borrar_color:
 
 Este power up permite eliminar toda presencia del color seleccionado, tal que una vez hecho se delega la eliminación al predicado `eliminar_color/7`. Este predicado realiza un recorrido que barre la grilla para eliminar cada coincidencia presente.
 Lo más relevante de su lógica es cómo empaqueta sus consecuencias: calcula cuántos puntos se destruyeron `CantidadRealColor` y qué cantidad de agua se expandió `CantidadAgua`, unificando ambos datos dentro del término secuencial `achieved/1`. Tras aplicar la física de `gravedad/3`, el estado final es sometido a `juntar_efectos_con_mezcla/4`, evaluando de forma predictiva si la eliminación masiva dejó la grilla sin movimientos posibles (deadlock).
 
-![PowerUpBorrarUnColor1](docs/images/casosDePrueba/React/PowerUps/PowerUpBorrarUnColor1.png)
-![PowerUpBorrarUnColor2](docs/images/casosDePrueba/React/PowerUps/PowerUpBorrarUnColor2.png)
+![PowerUpBorrarUnColor1](images/casosDePrueba/React/PowerUps/PowerUpBorrarUnColor1.png)
+![PowerUpBorrarUnColor2](images/casosDePrueba/React/PowerUps/PowerUpBorrarUnColor2.png)
 
 #### 5.3.3) Cruz:
 
 Este power up es un potenciador permite seleccionar una celda específica tal que de la misma se eliminen todos los puntos de sus respectivas columna y fila, así formando la cruz. Su lógica se divide en dos fases: el cálculo espacial y la resolución de efectos.Primero, mediante operaciones de división entera y módulo aplicadas en combinación con `findall/3` y `nth0/3`, el predicado `indices_en_cruz/4` recolecta un `PathCruz` con todos los índices que compartan su misma fila o columna. En segundo lugarm se caluclan los elementos eliminados `contar_colores_destruios`, se actualiza el agua y se actualizan los logros combinados en una estructura condicional `append/3`.
 
-![PowerUpCruz1](docs/images/casosDePrueba/React/PowerUps/PowerUpCruz1.png)
-![PowerUpCruz2](docs/images/casosDePrueba/React/PowerUps/PowerUpCruz2.png)
+![PowerUpCruz1](images/casosDePrueba/React/PowerUps/PowerUpCruz1.png)
+![PowerUpCruz2](images/casosDePrueba/React/PowerUps/PowerUpCruz2.png)
 
 #### 5.3.4) Mezclar:
 
 Su función a diferencia de los anteriores depende de reorganizar todos los puntos presentes en la grilla, sin destruirlos. Su lógica se invoca a `mezclar_grilla_segura/3` para realizar la mezcla, sin alterar la presencia de agua en las celdas que ya poseen agua. Tras reordenar la matriz, evalúa inmediatamente si la nueva configuración posee combinaciones válidas mediante `hay_movimientos/2`. Si la mezcla aleatoria abre caminos transitables, devuelve la nueva grilla con efectos limpios; si el algoritmo falla y constata que ni siquiera la redistribución salvó el juego, inyecta de forma fulminante la bandera analítica `[deadlock]`, notificando a React que debe finalizar la partida.
 
-![PowerUpMezclar1](docs/images/casosDePrueba/React/PowerUps/PowerUpMezclar1.png)
-![PowerUpMezclar2](docs/images/casosDePrueba/React/PowerUps/PowerUpMezclar2.png)
+![PowerUpMezclar1](images/casosDePrueba/React/PowerUps/PowerUpMezclar1.png)
+![PowerUpMezclar2](images/casosDePrueba/React/PowerUps/PowerUpMezclar2.png)
 
 ## 6) Aspectos modificados en React:
 
@@ -225,15 +225,15 @@ Se incorporó un sistema de navegación compuesto por distintas pantallas para m
 
 Se cuenta con un menú principal `MainMenu`, un selector de niveles `LevelSelector` y la pantalla original de juego `Game`. De este modo la interacción de juego se extiende a más que solamente completar una partida preestablecida. La interfaz también incluye ventanas modales para representar los distintos estados del juego, como pausa, victoria o derrota, mediante el componente `GameOverModal`.
 
-![`MainMenu`](docs/images/casosDePrueba/React/MainMenu.png)
-![`LevelSelector`](docs/images/casosDePrueba/React/LevelSelector.png)
-![`Game`](docs/images/casosDePrueba/React/Game.png)
-![`GameOverModal`](docs/images/casosDePrueba/React/GameOverModal.png)
+![`MainMenu`](images/casosDePrueba/React/MainMenu.png)
+![`LevelSelector`](images/casosDePrueba/React/LevelSelector.png)
+![`Game`](images/casosDePrueba/React/Game.png)
+![`GameOverModal`](images/casosDePrueba/React/GameOverModal.png)
 
 ### 6.2) Barra de power ups:
 
 `PowerUpBar`: Implementa la barra de habilidades especiales del juego, mostrando los recursos disponibles. El componente mantiene este inventario mediante el estado `powerUps` y un identificador de poder activo.  (`activePowerUp`). 
-![PowerUps](docs/images/casosDePrueba/PowerUps.png)
+![PowerUps](images/casosDePrueba/PowerUps.png)
 
 ### 6.3) Aspectos visuales:
 
@@ -241,7 +241,7 @@ Se realizaron ajustes visuales tales como la tonalidad de los puntos mediante la
 
 ### 6.4) Gestión de audio: 
 
-[useAudio.ts](\src\components\useAudio.ts)
+[useAudio.ts](../src/components/useAudio.ts)
 Se incorporó un sistema de reproducción musical basado en el hook personalizado `useAudio`. Este componente administra la creación y destrucción de los objetos de audio, reproduce música únicamente durante las partidas activas y permite al usuario activar o silenciar el sonido desde la interfaz.
 
 ### 6.5) Modularización de `game.tsx`: 
