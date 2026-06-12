@@ -15,19 +15,20 @@ Esta combinación permite separar claramente responsabilidades:
 ## 2) Arquitectura general:
 La lógica principal del juego se implementa en el archivo [`proylcc.pl`](/pengines_server/apps/proylcc/proylcc.pl), mientras que la interfaz se desarrolla en React.
 
-La comunicación entre las dos capas se realiza mediante el predicado `connect/4`, que recibe la información clave tal que funciona como el motor de cada jugada realizando un mapeo entre el exterior y el interior del juego.
-
-Principalmente gestionando que se verifique un camino válido de un único color, para posteriormente reaccionar según corresponda(camino abierto cerrado o camino cerrado con puntos internos para bombas). Así de forma ordenada, una vez reacciono como corresponde según el caso, se aplica la gravedad y en caso de poseer bombas, las mismas explotan.
+La comunicación entre las dos capas se realiza mayormente en el archivo Game.tsx, el que se nos hizo muy extenso y decidimos dividir en más archivos.
+expandir
+NOTA AÑADIR LOS ARCHIVOS.
 
 ## 3) Implementación en Prolog:
 
 ### 3.1) Representación de la grilla:
 
-En principio, utilizamos la representación de la grilla completa como una lista plana unidimensional, donde cada posición representa una celda identificada mediante un índice. A partir de `NumOfColumns`, se reconstruyen las relaciones espaciales utilizando operaciones aritméticas sobre dichos índices, en lugar de acceder a posiciones por cercanía directa. De modo que, la proximidad se determinan lógicamente, determinando si son vecinos ortogonales (arriba, abajo, izquierda y derecha), asì optimizando el rendimiento la validación de caminos (`camino_valido`), la simulación de la gravedad y expansión geométrica del agua.
+En principio, utilizamos la representación de la grilla completa como una lista plana unidimensional, donde cada posición representa una celda identificada mediante un índice. A partir de `NumOfColumns`, se reconstruyen las relaciones espaciales utilizando operaciones aritméticas sobre dichos índices en lugar de acceder a posiciones por cercanía directa. La proximidad se determinan lógicamente, verificando si son vecinos ortogonales (arriba, abajo, izquierda y derecha), así optimizando el rendimiento la validación de caminos (`camino_valido`), la simulación de gravedad y expansión del agua.
+Para las modificaciones, nunca se modifica el estado original, sino que se construye una nueva versión de la misma, así recorriendo cada celda.
 
 #### Aspecto destacado:
 
-Las celdas no se modelan como objetos, sino como listas de propiedades. Esto permite representar múltiples estados simultáneamente (por ejemplo color, agua ([color, agua]) o bombas([color, bomba])) de forma flexible y extensible. Además de que React utiliza esos `Effects` para: actualizar el progreso del nivel, animar objetivos cumplidos y reacciones (en la grilla internamente como visualmente).
+Las celdas no se modelan como objetos, sino como listas de propiedades. Esto permite representar múltiples estados simultáneamente (por ejemplo color, agua ([color, agua]) o bombas([color, bomba])) de forma flexible y extensible. Además de que React utiliza esos `Effects` para: actualizar el progreso del nivel, animar objetivos cumplidos y reacciones (tanto en la grilla internamente como visualmente).
 
 ### 3.2) Conexión de puntos:
 
@@ -35,38 +36,38 @@ La conexión de puntos se basa en la construcción de un camino (`Path`) formado
 
 #### Aspecto destacado:
 
-El predicado `celda_con_color/2` es el encargado de discriminar/investiga el contenido de cada celda ([Color | Modificadores]) (por ejemplo, aislando el color de modificadores ambientales (`agua` u `obstáculos`)), así garantizando sobre qué elemento se está operando antes de aprobar la validez de la conexión.
+El predicado `celda_con_color/2` es el encargado de discriminar/investigar el contenido de cada celda ([Color | Modificadores]) (por ejemplo, aislando el color de modificadores ambientales (`agua` u `obstáculos`)), así garantizando sobre qué elemento se está operando antes de aprobar la validez de la conexión.
 
 ### 3.3) Eliminación de puntos:
 
-La eliminación la definimos como una transformación de la grilla tal que nunca se modifica el estado original, sino que se construye una nueva versión de la misma, así recorriendo cada celda. Durante este proceso, el sistema discrimina si el contenido de una celda debe conservarse intacto, vaciarse por completo (sustituyéndolo por una lista vacía `[]`) o preservar sus propiedades físicas y ambientales estructurales, tales como la presencia de agua (`~`) o bloques infranqueables (`-`).
+La eliminación la definimos como una transformación sobre la "nueva grilla" que generamos para proteger la identidad de la original. Durante este proceso, el sistema discrimina si el contenido de una celda debe conservarse intacto, vaciarse por completo (sustituyéndolo por una lista vacía `[]`) o preservar sus propiedades físicas y ambientales estructurales, tales como la presencia de agua (`~`) o bloques infranqueables (`-`).
 
 #### Aspecto destacado:
 
-Para la manipulación de la grilla inicialmente se usó `nth0/3`, un predicado estándar de Prolog que permite indexar, verificar y extraer elementos basados en un índice con base cero. Fundamental para validar la correspondencia entre los índices del camino y las coordenadas reales. Más posteriormente se comparó `nth0/3` y `nth0/4`, de modo que optamos por `nth0/4` gracias a que el predicado anterior solamente servía para consultar o leer, mientras que el actual también transforma.
+Para la manipulación de la grilla inicialmente se usó `nth0/3`, un predicado estándar de Prolog que permite indexar, verificar y extraer elementos basados en un índice con base cero. Fundamental para validar la correspondencia entre los índices del camino y las coordenadas reales. Mas, posteriormente, se comparó `nth0/3` y `nth0/4`, de modo que optamos por `nth0/4` gracias a que el predicado anterior solamente servía para consultar o leer, mientras que el actual también transforma.
 
 ### 3.4) Gravedad:
 
-La gravedad se implementó por medio de aislamiento, así reestructurando temporalmente la lista plana de la grulla. Por medio del predicado `grilla_filas/3` en combinación con un algoritmo de transposición de matrices (`transponer/2`) se obtienen las distintas columnas independientes que se visualizan en el juego. Esto permite simplificar el procesamiento para recorrerlas y gestionar la situación interna de las mismas, así desplazando los casilleros vacíos (`[]`) hacia el extremo superior, tal que se rellenen las posiciones por inyección aleatoria de nuevos puntos. Una vez llenas las columnas, vuelve a transponer y aplana reconstruyendo el formato original de la grilla.
+La gravedad se implementó por medio de aislamiento, reestructurando temporalmente la lista plana de la grulla. Por medio del predicado `grilla_filas/3` en combinación con un algoritmo de transposición de matrices (`transponer/2`) se obtienen las distintas columnas independientes que se visualizan en el juego. Esto permite simplificar el procesamiento para recorrerlas y gestionar la situación interna de las mismas, así desplazando los casilleros vacíos (`[]`) hacia el extremo superior, tal que se rellenen las posiciones por inyección aleatoria de nuevos puntos. Una vez llenas las columnas, vuelve a transponer y aplana reconstruyendo el formato original de la grilla.
 
 #### Aspecto destacado:
 
-La lógica de la gravedad funciona independiente de la interfaz gráfica, más se mantienen en sincronía. Al caer en Prolog se le comunica a React el estado intermedio con la información `[cae]`, esto permite que la interfaz represente los cambios de posición y cuáles son las animaciones correspondientes a producirse.
+La lógica de la gravedad funciona independiente de la interfaz gráfica, mas se mantienen en sincronía. Al caer en Prolog se le comunica a React el estado intermedio con la información `[cae]`, esto permite que la interfaz represente los cambios de posición y cuáles son las animaciones correspondientes a producirse.
 
 ### 3.5) Generación de nuevos puntos:
 
-La generación de nuevos puntos ocurre dentro de la gestión de la gravedad. Ocurre una vez que se sedimentan todos los puntos no eliminados en el extremo inferior de las columnas, se calcula la cantidad de espacios vacantes por cada columna. Usando la aleatoriedad provista por `library(random)` se obtendrán nuevos puntos de colores (respetando el conjunto de posibles valores para los colores). Garantiza que no queden celdas sin un color asignado, salvo que sean obstáculos.  
+La generación de nuevos puntos ocurre dentro de la gestión de la gravedad. Ocurre una vez que se sedimentan todos los puntos no eliminados en el extremo inferior de las columnas, se calcula la cantidad de espacios vacantes por cada una. Usando la aleatoriedad provista por `library(random)` se obtendrán nuevos puntos de colores (respetando el conjunto de posibles valores para los colores). Garantiza que no queden celdas sin un color asignado, salvo que sean obstáculos.  
 
 #### Aspecto destacado:
-Al realizar la inyección sobre la estructura de columnas transpuestas se evitan errores de índices respecto a la grilla original cuando se recupera la forma de única lista de la grilla.
+Al realizar la inyección sobre la estructura de columnas transpuestas se evitan errores de índices de grilla original cuando se recupera la forma de única lista inicial.
 
 ### 3.6) Gestión de obstáculos:
 
-Los obstáculos se representan mediante `[-]`. Se diferencian del resto de celdas de la grilla ya que no se podrán utilizar sin modificar frente a ninguna circunstancia. Desde la validación del camino en `camino_valido/3` se gestiona un rechazo instantáneo ante el intento de interactuar con él. Funcionan como barreras.
+Los obstáculos se representan mediante `[-]`. Se diferencian del resto de celdas de la grilla ya que no se podrán utilizar sin modificar frente a ninguna circunstancia. Desde la validación del camino en `camino_valido/3` se gestiona un rechazo instantáneo ante el intento de interactuar con él. Funcionan como barreras. No deberían verse afectados por la explosión de bombas, gravedad o expansión de agua. 
 
 ### 3.7) Objetivos del nivel:
 
-Los objetivos se gestionan desde el predicado `connect/4`, que coordina toda la lógica asociada a una jugada. Durante su ejecución, el sistema calcula los resultados relevantes de la conexión realizada y actualiza el progreso de los objetivos del nivel. Estos resultados se transforman en eventos `achieved(...)`, que son utilizados por React para actualizar los contadores y mostrar el avance del jugador. Cuando todos los objetivos son completados, el nivel puede darse por finalizado.
+Los objetivos se gestionan desde el predicado `connect/4`, que coordina toda la lógica asociada a una jugada. Durante su ejecución, el sistema calcula los resultados relevantes de la conexión realizada y actualiza el progreso de los objetivos del nivel. Estos resultados se transforman en eventos `achieved(...)`, que son utilizados por React para actualizar los contadores y mostrar el avance del jugador. Cuando todos los objetivos son completados, el nivel puede darse por finalizado en condición de victoria.
 
 #### Aspecto destacado:
 
@@ -96,7 +97,7 @@ Al gatillar la detonación, por medio del predicado `adyacente_bomba/4`, se dete
 
 ### 3.10) Agua:
 
-El agua se modela como una propiedad especial que complementa las celdas con puntos. La eliminación de el punto en la celda sin agua que sea vecina ortogonal a una celda con agua, ya sea por un camino válido, bomba o power up, la eliminación ocasionará un cambio permanente en esa celda. Además, la expansión del agua computa de forma inmediata nuevos logros hacia los objetivos de la partida.
+El agua se modela como una propiedad especial que complementa las celdas con puntos. La eliminación de el punto en la celda sin agua que sea vecina ortogonal a una celda con agua, ya sea por un camino válido, bomba o power up, ocasionará un cambio permanente en esa celda. Además, la expansión del agua computa de forma inmediata nuevos logros hacia los objetivos de la partida.
 
 #### Aspecto destacado:
 
@@ -108,7 +109,7 @@ El estado de la partida se controla mediante la interacción entre Prolog y Reac
 
 #### 3.11.1) **Flujo de Victoria:**
 
-Se produce una vez todos los objetivos del nivel fueron satisfechos, entonces se finaliza la partida.
+Se produce una vez todos los objetivos del nivel fueron satisfechos y se finaliza la partida.
 
 ![Victoria](docs/images/casosDePrueba/React/Victoria.png)
 
@@ -121,7 +122,7 @@ Ocurre en dos situaciones:
 El contador de movimientos llegó a cero.
 ![Derrota](docs/images/casosDePrueba/React/Derrota.png)
 
-#### 3.11.2.2) **Sin jugadas posible(deadlock):**
+#### 3.11.2.2) **Sin jugadas posible (deadlock):**
 
 Esta es una situación clave, ya que tanto por la generación aleatoria de puntos como los posibles formatos de niveles se debía plantear un caso en el que ya no se pudiera actuar. Cuando ya no existen combinaciones válidas en la grilla `hay_movimientos/2`, tal que envía la marca `[deadlock]` dentro de los efectos generados, y React finaliza la partida automáticamente mostrando la pantalla de derrota.
 
@@ -144,11 +145,11 @@ La lógica de detección y recuperación se enfoca en `juntar_efectos_con_mezcla
 
 ### 5.1) Generación de nuevos niveles:
 
-Alteración del archivo init: no se ha modificado el esquema de representación de la grilla en el archivo `init.pl`. Lo que se modifica es el generación de niveles, tal que se pre definieron unos niveles iniciales y un generador de niveles dinámicos para los niveles superiores. Para los niveles generados automáticamente, se incorpora lógica de aleatorización para crear puntos, obstáculos y casillas con agua según distribuciones de probabilidad predefinidas.
+Alteración del archivo init: no se ha modificado el esquema de representación de la grilla en el archivo `init.pl`. Lo que se modifica es el generación de niveles, tal que se pre-definieron unos niveles iniciales y un generador de niveles dinámicos para los niveles superiores. Para los niveles generados automáticamente, se incorpora lógica de aleatorización para crear puntos, obstáculos y casillas con agua según distribuciones de probabilidad predefinidas.
 
 ### 5.2) Eliminación de todo un color sin necesidad de un camino cerrado:
 
-Imitación del comportamiento de **Two dots** tal que si se unen 13 puntos del mismo color, elimina todos los puntos del mismo color. Esto fue agregado en la definición del `conect/4` para eliminar todos los puntos del color seleccionado, asegurando poder eliminar todas las presencias de un mismo color sin un camino cerrado, ni bombas.
+Imitación del comportamiento de **Two dots** tal que si se unen 13 puntos del mismo color, elimina todos los puntos del mismo color. Esto fue agregado en la definición del `connect/4` para eliminar todos los puntos del color seleccionado, asegurando poder eliminar todas las presencias de un mismo color sin un camino cerrado, ni bombas.
 
 ![13Puntos1](docs/images/casosDePrueba/Prolog/13Puntos1.png)
 ![13Puntos2](docs/images/casosDePrueba/Prolog/13Puntos2.png)
@@ -157,18 +158,21 @@ Imitación del comportamiento de **Two dots** tal que si se unen 13 puntos del m
 ![13Puntos5](docs/images/casosDePrueba/Prolog/13Puntos5.png)
 
 ### 5.3) Definición de Power Ups:
-Con el fin de ser los más fieles posibles al juego original definimos 5 power ups:
+Con el fin de ser los más fieles posibles al juego original definimos 4 power ups:
+
+INSERTE CAP USO POWERAP
+
 
 #### 5.3.1) Borrador:
 
-Este permite eliminar el punto de una celda específica arbitrariamente. Su lógica se determina por medio de la selección de la celda a eliminar `color_en(Grid, TargetIdx, Color)` para proceder a realizar la eliminación específica con `eliminacion_simple/6`, para finalmente estabilizar/chequear el tablero como cualquier otra jugada realizada.
+Este permite eliminar el punto de una celda específica individualmente. Su lógica se determina por medio de la selección de la celda a eliminar `color_en(Grid, TargetIdx, Color)` para proceder a realizar la eliminación específica con `eliminacion_simple/6`, para finalmente estabilizar/chequear el tablero como cualquier otra jugada realizada.
 
 ![PowerUpBorrar1](docs/images/casosDePrueba/React/PowerUps/PowerUpBorrar1.png)
 ![PowerUpBorrar2](docs/images/casosDePrueba/React/PowerUps/PowerUpBorrar2.png)
  
 #### 5.3.2) Borrar_color:
 
-Este power up permite eliminar toda presencia de el color seleccionado, tal que una vez seleccionado se delega la eliminación al predicado `eliminar_color/7`. Este predicado realiza un recorrido tal que barre la grilla para eliminar cada coincidencia presente.
+Este power up permite eliminar toda presencia del color seleccionado, tal que una vez hecho se delega la eliminación al predicado `eliminar_color/7`. Este predicado realiza un recorrido que barre la grilla para eliminar cada coincidencia presente.
 Lo más relevante de su lógica es cómo empaqueta sus consecuencias: calcula cuántos puntos se destruyeron `CantidadRealColor` y qué cantidad de agua se expandió `CantidadAgua`, unificando ambos datos dentro del término secuencial `achieved/1`. Tras aplicar la física de `gravedad/3`, el estado final es sometido a `juntar_efectos_con_mezcla/4`, evaluando de forma predictiva si la eliminación masiva dejó la grilla sin movimientos posibles (deadlock).
 
 ![PowerUpBorrarUnColor1](docs/images/casosDePrueba/React/PowerUps/PowerUpBorrarUnColor1.png)
@@ -203,7 +207,7 @@ Se cuenta con un menú principal `MainMenu`, un selector de niveles `LevelSelect
 
 ### 6.2) Barra de power ups:
 
-`PowerUpBar`: Implementa la barra de habilidades especiales del juego, mostrando los recursos disponibles. El componente mantiene este inventario mediante el estado `powerUps` y un identificador de poder activo (`activePowerUp`). 
+`PowerUpBar`: Implementa la barra de habilidades especiales del juego, mostrando los recursos disponibles. El componente mantiene este inventario mediante el estado `powerUps` y un identificador de poder activo.  (`activePowerUp`). 
 ![PowerUps](docs/images/casosDePrueba/PowerUps.png)
 
 ### 6.3) Aspectos visuales:
