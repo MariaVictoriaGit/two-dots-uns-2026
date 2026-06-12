@@ -10,8 +10,7 @@ Para su desarrollo se utilizaron dos tecnologías principales:
 
 Esta combinación permite separar claramente responsabilidades: 
 - Prolog como lenguaje representativo del paradigma lógico, se utiliza para modelar el estado del juego y sus comportamientos por medio de hechos, reglas y consultas sobre la grilla. Trabaja bajo estrategias basadas en unificación, recursión y backtracking.
-- React, se utiliza para construir la interfaz mediante componentes reutilizables, encargándose de representar la grilla, factores estéticos y la interacción con el usuario.
-
+- React, se utiliza para construir la interfaz mediante componentes reutilizables, encargándose de representar la grilla, factores estéticos y la interacción con el usuario
 ## 2) Arquitectura general:
 La lógica principal del juego se implementa en el archivo [`proylcc.pl`](/pengines_server/apps/proylcc/proylcc.pl), mientras que la interfaz se desarrolla en React.
 
