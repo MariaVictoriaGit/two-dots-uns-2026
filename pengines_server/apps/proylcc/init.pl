@@ -77,8 +77,15 @@ init_level(3, [
     [g], [g], [g], [g], [g], [g], [g], [g]
 ], 8, [[g,20],[r,10],[p,15],[~,5]], 30).
 
-
+% Caso para probar el deadlock (sin movimientos posibles) 
 init_level(4, [
+    [p], [p], [r], [g],
+    [y], [c], [y], [c],
+    [r], [g], [r], [g],
+    [y], [c], [y], [c]
+], 4, [[p, 2], [r, 10]], 25).
+
+init_level(5, [
     [y], [p], [r], [g], [y], [p],
     [g], [y], [y], [r], [p], [g],
     [g], [g], [y], [p], [r], [y],
@@ -88,7 +95,7 @@ init_level(4, [
 ], 6, [[~, 10], [r, 12], [y, 12]], 18).
 
 
-init_level(5, [
+init_level(6, [
     [c], [c], [c], [y], [p], [r],
     [c], [r], [c], [g], [y], [p],
     [c], [c], [c], [r], [g], [y],
@@ -99,7 +106,7 @@ init_level(5, [
 
 
 init_level(N, Grid, Cols, Goals, Moves) :-
-    N > 5,
+    N > 6,
 
     Cols is min(10, 4 + N ),
     Rows is min(10, 5 + N ),
@@ -121,8 +128,10 @@ init_level(N, Grid, Cols, Goals, Moves) :-
     
     MaxAgua is floor(CeldasJugables * 0.85) - CantAgua,
     random(ObjetivoColor, MaxAgua , AguaRandom),
-    ObjetivoAgua is AguaRandom,
-    
+    AguaRandom >= MaxAgua -> 
+        ObjetivoAgua is MaxAgua ;
+        ObjetivoAgua is AguaRandom,
+        
     nth0(0, ColoresDelNivel, C1),
     nth0(1, ColoresDelNivel, C2),
     nth0(2, ColoresDelNivel, C3),
@@ -183,17 +192,3 @@ asignar_tipo_celda(Dado, ColoresDelNivel, [Color]) :-
     Dado >= 25, Dado < 100,
     random_member(Color, ColoresDelNivel).
 
-
-/*
-init([
-    [r], [g],
-    [y], [c]
-], 2, [[r, 5]], 15).*/
-
-/* Caso para probar el deadlock (sin movimientos posibles) 
-init([
-    [p], [p], [r], [g],
-    [y], [c], [y], [c],
-    [r], [g], [r], [g],
-    [y], [c], [y], [c]
-], 4, [[p, 2], [r, 10]], 15).*/ 

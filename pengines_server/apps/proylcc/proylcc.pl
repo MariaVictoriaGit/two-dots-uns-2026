@@ -11,12 +11,7 @@ ESTRUCTURA ///
 )
 
 Celda = [Color , _]
-
 */
-
-% donde Effects es una lista de effect(ResultingGrid, AuxiliaryInfo)
-% donde AuxiliaryInfo es una lista de información adicional que se quiera devolver
-% para la UI (por ejemplo, los objetivos cumplidos, o qué celdas se vieron afectadas, etc).
 
 :- module(proylcc,
     [  
