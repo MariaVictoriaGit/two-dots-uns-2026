@@ -8,7 +8,7 @@ Para su desarrollo se utilizaron dos tecnologías principales:
 - **Prolog**, para la lógica del juego,
 - **React**, para la representación visual y la interacción con el usuario del juego.
 
-Esta combinación permite separar claramente responsabilidades:
+Esta combinación permite separar claramente responsabilidades: 
 - Prolog como lenguaje representativo del paradigma lógico, se utiliza para modelar el estado del juego y sus comportamientos por medio de hechos, reglas y consultas sobre la grilla. Trabaja bajo estrategias basadas en unificación, recursión y backtracking.
 - React, se utiliza para construir la interfaz mediante componentes reutilizables, encargándose de representar la grilla, factores estéticos y la interacción con el usuario.
 
@@ -28,12 +28,18 @@ Para las modificaciones, nunca se modifica el estado original, sino que se const
 
 Las celdas no se modelan como objetos, sino como listas de propiedades. Esto permite representar múltiples estados simultáneamente (por ejemplo color, agua ([color, agua]) o bombas([color, bomba])) de forma flexible y extensible. Además de que React utiliza esos `Effects` para: actualizar el progreso del nivel, animar objetivos cumplidos y reacciones (tanto en la grilla internamente como visualmente).
 
+![gravedad1](docs/images/codigo/gravedad1.jpeg)
+![gravedad2](docs/images/codigo/gravedad2.jpeg)
+![gravedad3](docs/images/codigo/gravedad3.jpeg)
+
 ### 3.2) Conexión de puntos:
 
 La conexión de puntos se basa en la construcción de un camino (`Path`) formado por índices numéricos consecutivos sobre la grilla plana. Para que una jugada sea válida, el sistema verifica que cada punto del camino sea obligatoriamente adyacente al siguiente y que todas las celdas involucradas compartan el mismo color. La adyacencia se calcula utilizando desplazamientos matemáticos sobre los índices, considerando movimientos ortogonales.
 
 ![connect1](docs/images/codigo/connect1.jpeg)   
 ![connect2](docs/images/codigo/connect2.jpeg)
+
+![auxiliarConnect](docs/images/codigo/auxiliarConnect.jpeg)
 
 #### Aspecto destacado:
 
@@ -91,6 +97,12 @@ Una vez creadas las bombas, el sistema aplica la gravedad sobre la grilla. Poste
 La explosión de las bombas se encuentra concentrada en el predicado `explosionar_bomba/5`, el cual integra simultáneamente la eliminación de puntos, la propagación de agua, la actualización de objetivos y la aplicación de una gravedad secundaria.
 Al gatillar la detonación, por medio del predicado `adyacente_bomba/4`, se determinan las celdas que son vecinas a la bomba. El sistema determina de forma exacta el conjunto de índices alcanzados por la onda expansiva, correspondiente a un área de impacto de 3×3, tal que al explotar se aplica por segunda vez la gravedad. 
 
+![bomba1](docs/images/codigo/bomba1.jpeg)
+![bomba2](docs/images/codigo/bomba2.jpeg)
+![bomba3](docs/images/codigo/bomba3.jpeg)
+![bomba4](docs/images/codigo/bomba4.jpeg)
+![bomba5](docs/images/codigo/bomba5.jpeg)
+
 ![BombaNormal1](docs/images/casosDePrueba/Prolog/BombaNormal1.png)
 ![BombaNormal2](docs/images/casosDePrueba/Prolog/BombaNormal2.png)
 ![BombaNormal3](docs/images/casosDePrueba/Prolog/BombaNormal3.png)
@@ -107,6 +119,9 @@ El agua se modela como una propiedad especial que complementa las celdas con pun
 #### Aspecto destacado:
 
 Se incorporaron los predicados: `tiene_agua/1` y `es_obstaculo/1` como capa de abstracción sobre la representación interna de la grilla. Gracias a esta decisión, si en el futuro se modifica la forma de representar agua u obstáculos, únicamente será necesario actualizar dichos predicados sin afectar el resto de la lógica del sistema.
+
+![agua1](docs/images/codigo/agua1.jpeg)
+![agua2](docs/images/codigo/agua2.jpeg)
 
 ### 3.11) Fin del juego:
 
@@ -261,15 +276,19 @@ Inicialmente, el agua se expandía erróneamente sobre celdas con obstáculos. P
 Tuvimos que experimentar con varios algoritmos para lograr una generación de bombas efectiva y completa.
 Fue complicado encontrar un balance que garantice la detección de bombas que no deje casos afuera ni meta casos de más. Al tener varios casos particulares (como la "falsa bomba" mencionada), tuvimos que poner más controles de los que pensamos. Si poníamos controles de más, por otra parte, había casos válidos que no nos consideraba, como por ejemplo un polígono cerrado con una "punta" fuera del cuadrado. 
 
-## 8) Nuestra experiencia con la IA
+## 8) Nuestra experiencia con la IA:
+
 Los asistentes de IA sirvieron de apoyo a lo largo del desarrollo, aunque no sin sus contratiempos. 
+
 ### Puntos destacados:
+
 - Nos ayudó a detectar código repetido que no veíamos, facilitando la reutilización y refactorización de predicados de Prolog, manteniendo el código modular y aplicando el principio DRY (Don't Repeat Yourself).
 - Nos facilitó entender cómo conectar la lógica del juego con los aspectos gráficos en React y así mapear datos del desde Prolog hacia la interfaz.
 - El completamiento y generación de código sencillo es de gran ayuda cuando se trabaja en un marco temporal y se sabe lo que se está haciendo. 
 - Poder pedir explicaciones de funciones y predicados era bastante útil cuando teníamos que tocar código en el que había trabajado otra integrante del grupo de forma asincrónica. 
 
-### Consideraciones
+### Consideraciones:
+
 - Así como la IA puede generar mucho código, también puede generar muchos errores. Cuando estábamos experimentando con los agentes tuvimos que calibrar la "confianza que les teníamos." A veces, sin querer, le dábamos permisos para modificar archivos o completar texto que en realidad no queríamos.
 - Tuvimos una ocasión donde al querer insertar un ícono, por copiar y pegar ciegamente, la IA decidió que el mejor curso de acción era hard-codear el ícono y dibujarlo de forma vectorial en lugar de simplemente importarlo.
 - Al final, decidimos que antes de aceptar una sugerencia de la IA o hacer un cambio grande, debíamos consultarlo entre nosotras para no cometer una imprudencia. Muchas veces pasaba, que algo que parecía coherente y correcto, después de un poco de análisis estaba atado con alambre. 
@@ -281,22 +300,3 @@ El desarrollo de este proyecto nos permitió comprender en profundidad cómo int
 La organización por capas implementada permitió desacoplar completamente la lógica de negocio de la interfaz gráfica. Gracias a ello, mecánicas complejas como la conexión de puntos, la gravedad, la expansión del agua, la generación y explosión de bombas o la validación de objetivos pudieron desarrollarse de manera independiente, pudiendo trabajar con la definición de los comportamientos de manera independiente de su representación visual. 
 
 En conjunto, el proyecto demuestra que es posible integrar de manera efectiva distintas tecnologías y niveles de abstracción dentro de una misma aplicación, logrando una solución flexible, extensible y fácil de mantener.
-
-
-
-
-
-
-![agua1](docs/images/codigo/agua1.jpeg)
-![agua2](docs/images/codigo/agua2.jpeg)
-![alt text](docs/images/codigo/auxiliarConnect.jpeg)
-![alt text](docs/images/codigo/bomba1.jpeg)
-![alt text](docs/images/codigo/bomba2.jpeg)
-![alt text](docs/images/codigo/bomba3.jpeg)
-![alt text](docs/images/codigo/bomba4.jpeg)
-![alt text](docs/images/codigo/bomba5.jpeg)
-![alt text](docs/images/codigo/gravedad1.jpeg)
-![alt text](docs/images/codigo/gravedad2.jpeg)
-![alt text](docs/images/codigo/gravedad3.jpeg)
-![alt text](docs/images/codigo/gravedad3.jpeg)
-
