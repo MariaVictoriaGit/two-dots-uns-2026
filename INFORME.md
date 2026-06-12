@@ -74,7 +74,7 @@ Los objetivos se calculan directamente durante la resolución de la jugada en `c
 
 ### 3.8) Formas cerradas:
 
-Las formas cerradas constituyen uno de los puntos claves para el funcionamiento del juego, tal que se busca detectar desde el `connect/4`. Esto se logra iniciando en el predicado `es_cerrado/1`, el cual evalúa recursivamente la lista de índices del camino (`Path`) para verificar si alguna coordenada se repite un el recorrido con longitud mayor a 2, verificando la existencia de un bucle. En caso afirmativo, se procede a eliminar todos los puntos de el color correspondiente por medio de `eliminar_color/7`, se evalúa y realiza la expansión del agua correspondiente (en las zonas que sea necesario), antes de finalmente aplicarse los efectos de la eliminación y la gravedad.
+Las formas cerradas constituyen uno de los puntos claves para el funcionamiento del juego, tal que se busca detectar desde el `connect/4`. Esto se logra iniciando en el predicado `es_cerrado/1`, el cual evalúa recursivamente la lista de índices del camino (`Path`) para verificar si alguna coordenada se repite el recorrido con longitud mayor a 2, verificando la existencia de un bucle. En caso afirmativo, se procede a eliminar todos los puntos de el color correspondiente por medio de `eliminar_color/7`, se evalúa y realiza la expansión del agua correspondiente (en las zonas que sea necesario), antes de finalmente aplicarse los efectos de la eliminación y la gravedad.
 
 #### Aspecto destacado:
 El procesamiento de una forma cerrada constituye la única condición del juego para crear bombas. Durante la transformación masiva de la grilla, el motor de Prolog calcula una coordenada de anclaje dentro del perímetro del bucle para inyectar el modificador estructurado `[Color, bomba]`.
@@ -133,6 +133,9 @@ La mezcla reorganiza aleatoriamente las fichas manteniendo intactos obstáculos 
 
 Entonces, si después de varios intentos continúa sin existir ninguna jugada válida, se genera el evento `[deadlock]` que React interpreta como una condición inmediata de derrota.
 
+![SinComb1](docs/images/casosDePrueba/Prolog/SinComb1.png)
+![SinComb2](docs/images/casosDePrueba/Prolog/SinComb2.png)
+
 #### Aspecto destacado:
 
 La lógica de detección y recuperación se enfoca en `juntar_efectos_con_mezcla/4` permitiendo realizar un comportamiento donde se intenta salvar automáticamente una partida bloqueada antes de darla por perdida.
@@ -189,17 +192,18 @@ Su función a diferencia de los anteriores depende de reorganizar todos los punt
 
 ### 6.1) Navegación e interfaz de usuario:
 
-Se incorporó un sistema de navegación compuesto por distintas pantallas para mayor fidelidad al juego original. Se cuenta con un menú principal `MainMenu`, un selector de niveles `LevelSelector` y la pantalla original de juego `Game`. De este modo la interacción de juego se extiende a más que solamente completar una partida preestablecida. La interfaz también incluye ventanas modales para representar los distintos estados del juego, como pausa, victoria o derrota, mediante el componente `GameOverModal`.
+Se incorporó un sistema de navegación compuesto por distintas pantallas para mayor fidelidad al juego original, extendiendo la interacción de juego a más que solamente completar una partida preestablecida. La gestión de múltiples pantallas se administra mediante el estado `currentScreen`, permitiendo alternar de manera fluida entre las diferentes secciones sin abandonar el contexto general de la aplicación.
+
+Se cuenta con un menú principal `MainMenu`, un selector de niveles `LevelSelector` y la pantalla original de juego `Game`. De este modo la interacción de juego se extiende a más que solamente completar una partida preestablecida. La interfaz también incluye ventanas modales para representar los distintos estados del juego, como pausa, victoria o derrota, mediante el componente `GameOverModal`.
 
 ![`MainMenu`](docs/images/casosDePrueba/React/MainMenu.png)
 ![`LevelSelector`](docs/images/casosDePrueba/React/LevelSelector.png)
 ![`Game`](docs/images/casosDePrueba/React/Game.png)
 ![`GameOverModal`](docs/images/casosDePrueba/React/GameOverModal.png)
 
-### 6.2) Mecánicas de juego incorporadas:
+### 6.2) Barra de power ups:
 
-Se implementaron las respectivas representaciones en React para los Power ups, contando con animaciones si así lo ameritan.
-
+`PowerUpBar`: Implementa la barra de habilidades especiales del juego, mostrando los recursos disponibles. El componente mantiene este inventario mediante el estado `powerUps` y un identificador de poder activo (`activePowerUp`). 
 ![PowerUps](docs/images/casosDePrueba/PowerUps.png)
 
 ### 6.3) Aspectos visuales:
@@ -211,26 +215,45 @@ Se realizaron ajustes visuales tales como la tonalidad de los puntos mediante la
 [useAudio.ts](\src\components\useAudio.ts)
 Se incorporó un sistema de reproducción musical basado en el hook personalizado `useAudio`. Este componente administra la creación y destrucción de los objetos de audio, reproduce música únicamente durante las partidas activas y permite al usuario activar o silenciar el sonido desde la interfaz.
 
-### 6.5) Modularizacion de `game.tsx`: 
+### 6.5) Modularización de `game.tsx`: 
 
+Con el fin de no poseer un módulo `game.tsx` con una cantidad excesiva de líneas de código tales realizarán funcionalidades no fundamentalmente relacionadas más que por utilizarse en el juego como accesorios. Decidimos crear nuevos componentes.
 
+#### 6.5.1) LevelSelector:
 
+Componente encargado de la pantalla de selección de niveles. Permite al jugador visualizar su progreso y elegir los escenarios disponibles de manera sencilla e intuitiva. La interfaz muestra únicamente los niveles desbloqueados según el avance alcanzado y cuenta con un sistema de desplazamiento automático que centra la vista en el nivel actualmente seleccionado. Además, se diseñó una presentación visual inspirada en los mapas de progreso de juegos comerciales, utilizando un recorrido en zig-zag que conecta los distintos niveles y facilita la comprensión del avance dentro del juego. Todo el estilo de esta pantalla se encuentra encapsulado en módulos CSS independientes, favoreciendo la organización y el mantenimiento del código.
+
+#### 6.5.2) LevelSelector:
+
+Componente que funciona como la pantalla principal y punto de entrada del juego. Desde aquí el usuario puede iniciar una nueva partida o acceder al selector de niveles, centralizando las acciones iniciales de navegación de la aplicación. Su diseño busca ofrecer una bienvenida clara y atractiva al jugador, organizando de forma ordenada los títulos, botones y elementos visuales principales. Además, cuenta con estilos modularizados que incorporan animaciones y efectos interactivos sobre los botones para mejorar la experiencia de usuario y dar mayor dinamismo a la interfaz.
+
+#### 6.7) Gestión de audición:
+
+Se implementó un sistema de audio mediante el hook personalizado `useAudio.ts`, encargado de centralizar la reproducción de sonidos y evitar código duplicado. Este módulo controla automáticamente la música de fondo según el estado de la partida, permite activarla o silenciarla desde la interfaz y libera los recursos al salir del juego para optimizar el rendimiento del navegador.
+ 
 ## 7) Dificultades:
 
-### 7.1) 
-**Propagación recursiva del agua:** uno de los desafíos fue implementar la expansión del agua en cadena, donde la eliminación de un punto mojado debe propagarse a sus adyacentes, y estos a los suyos sucesivamente. Implementamos esto mediante Búsqueda en Profundidad (DFS) recursiva. Para evitar ciclos infinitos en grillas con muchos elementos de agua conectados; mantenemos una lista de visitados, garantizando que cada celda sea procesada una sola vez por jugada.
+### 7.1) Propagación recursiva del agua:
 
-### 7.2)
-**Gestión de obstáculos y delimitación:** Inicialmente, el agua se expandía erróneamente sobre celdas con obstáculos. Para corregirlo, implementamos una lógica de validación preventiva basada en una Búsqueda en Amplitud (BFS) para el control de fronteras. Antes de realizar cualquier expansión, el predicado `es_obstaculo/1` actúa como una barrera lógica, asegurando que el flujo de agua se detenga al detectar celdas delimitadoras ([-]).
+Uno de los desafíos fue implementar la expansión del agua en cadena, donde la eliminación de un punto mojado debe propagarse a sus adyacentes, y estos a los suyos sucesivamente. Implementamos esto mediante Búsqueda en Profundidad (DFS) recursiva. Para evitar ciclos infinitos en grillas con muchos elementos de agua conectados; mantenemos una lista de visitados, garantizando que cada celda sea procesada una sola vez por jugada.
 
-### 7.3)
-**Formación de bombas:** Tuvimos que experimentar con varios algoritmos para lograr una generación de bombas efectiva y completa.
+### 7.2)Gestión de obstáculos y delimitación: 
+
+Inicialmente, el agua se expandía erróneamente sobre celdas con obstáculos. Para corregirlo, implementamos una lógica de validación preventiva basada en una Búsqueda en Amplitud (BFS) para el control de fronteras. Antes de realizar cualquier expansión, el predicado `es_obstaculo/1` actúa como una barrera lógica, asegurando que el flujo de agua se detenga al detectar celdas delimitadoras ([-]).
+
+### 7.3) Formación de bombas:
+
+Tuvimos que experimentar con varios algoritmos para lograr una generación de bombas efectiva y completa.
 Fue complicado encontrar un balance que garantice la detección de bombas que no deje casos afuera ni meta casos de más. Al tener varios casos particulares (como la "falsa bomba" mencionada), tuvimos que poner más controles de los que pensamos. Si poníamos controles de más, por otra parte, había casos válidos que no nos consideraba, como por ejemplo un polígono cerrado con una "punta" fuera del cuadrado. 
 
 ![FalsaBomba1](docs/images/casosDePrueba/Prolog/FalsaBomba1.png)
 ![FalsaBomba2](docs/images/casosDePrueba/Prolog/FalsaBomba2.png)
 ![FalsaBomba3](docs/images/casosDePrueba/Prolog/FalsaBomba3.png)
-89
+
 ## 9) Conclusiones:
 
-En conclusión, el presente proyecto nos permite comprender la comunicación entre distintas tecnologías mediante capas, manejandose con diversos niveles de expresividad con un enfoque a una arquitectura clara. Así pudiendo trabajar desacopladas de la representación visual, favoreciendo la extensibilidad y el mantenimiento del juego.
+El desarrollo de este proyecto nos permitió comprender en profundidad cómo integrar y coordinar tecnologías basadas en paradigmas muy diferentes. Por un lado, se trabajó con Prolog para modelar la lógica del juego mediante programación declarativa, mientras que React se encargó de la representación visual y la interacción con el usuario. Esta combinación puso en evidencia la importancia de diseñar una arquitectura clara, donde cada tecnología pueda aprovechar sus fortalezas específicas.
+
+La organización por capas implementada permitió desacoplar completamente la lógica de negocio de la interfaz gráfica. Gracias a ello, mecánicas complejas como la conexión de puntos, la gravedad, la expansión del agua, la generación y explosión de bombas o la validación de objetivos pudieron desarrollarse de manera independiente, pudiendo trabajar con la definición de los comportamientos de manera independiente de su representación visual. 
+
+En conjunto, el proyecto demuestra que es posible integrar de manera efectiva distintas tecnologías y niveles de abstracción dentro de una misma aplicación, logrando una solución flexible, extensible y fácil de mantener.
