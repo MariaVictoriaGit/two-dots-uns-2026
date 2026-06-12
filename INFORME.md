@@ -15,9 +15,7 @@ Esta combinación permite separar claramente responsabilidades:
 ## 2) Arquitectura general:
 La lógica principal del juego se implementa en el archivo [`proylcc.pl`](/pengines_server/apps/proylcc/proylcc.pl), mientras que la interfaz se desarrolla en React.
 
-La comunicación entre las dos capas se realiza mayormente en el archivo Game.tsx, el que se nos hizo muy extenso y decidimos dividir en más archivos.
-expandir
-NOTA AÑADIR LOS ARCHIVOS.
+La comunicación entre las dos capas se realiza mayormente en el archivo Game.tsx, el que se nos hizo muy extenso y decidimos dividir en más archivos, especificado en 6.5).
 
 ## 3) Implementación en Prolog:
 
@@ -33,6 +31,9 @@ Las celdas no se modelan como objetos, sino como listas de propiedades. Esto per
 ### 3.2) Conexión de puntos:
 
 La conexión de puntos se basa en la construcción de un camino (`Path`) formado por índices numéricos consecutivos sobre la grilla plana. Para que una jugada sea válida, el sistema verifica que cada punto del camino sea obligatoriamente adyacente al siguiente y que todas las celdas involucradas compartan el mismo color. La adyacencia se calcula utilizando desplazamientos matemáticos sobre los índices, considerando movimientos ortogonales.
+
+![connect1](docs/images/codigo/connect1.jpeg)   
+![connect2](docs/images/codigo/connect2.jpeg)
 
 #### Aspecto destacado:
 
@@ -95,6 +96,10 @@ Al gatillar la detonación, por medio del predicado `adyacente_bomba/4`, se dete
 ![BombaNormal3](docs/images/casosDePrueba/Prolog/BombaNormal3.png)
 ![BombaNormal4](docs/images/casosDePrueba/Prolog/BombaNormal4.png)
 
+![FalsaBomba1](docs/images/casosDePrueba/Prolog/FalsaBomba1.png)
+![FalsaBomba2](docs/images/casosDePrueba/Prolog/FalsaBomba2.png)
+![FalsaBomba3](docs/images/casosDePrueba/Prolog/FalsaBomba3.png)
+
 ### 3.10) Agua:
 
 El agua se modela como una propiedad especial que complementa las celdas con puntos. La eliminación de el punto en la celda sin agua que sea vecina ortogonal a una celda con agua, ya sea por un camino válido, bomba o power up, ocasionará un cambio permanente en esa celda. Además, la expansión del agua computa de forma inmediata nuevos logros hacia los objetivos de la partida.
@@ -120,6 +125,7 @@ Ocurre en dos situaciones:
 #### 3.11.2.1) **Sin movimientos restantes:**
 
 El contador de movimientos llegó a cero.
+
 ![Derrota](docs/images/casosDePrueba/React/Derrota.png)
 
 #### 3.11.2.2) **Sin jugadas posible (deadlock):**
@@ -134,6 +140,9 @@ La mezcla reorganiza aleatoriamente las fichas manteniendo intactos obstáculos 
 
 Entonces, si después de varios intentos continúa sin existir ninguna jugada válida, se genera el evento `[deadlock]` que React interpreta como una condición inmediata de derrota.
 
+![verificacion combinacional1](<docs/images/codigo/verificacion combinacional1.jpeg>)
+![verificacion combinacional2](<docs/images/codigo/verificacion combinacional2.jpeg>)
+
 ![SinComb1](docs/images/casosDePrueba/Prolog/SinComb1.png)
 ![SinComb2](docs/images/casosDePrueba/Prolog/SinComb2.png)
 
@@ -145,7 +154,7 @@ La lógica de detección y recuperación se enfoca en `juntar_efectos_con_mezcla
 
 ### 5.1) Generación de nuevos niveles:
 
-Alteración del archivo init: no se ha modificado el esquema de representación de la grilla en el archivo `init.pl`. Lo que se modifica es el generación de niveles, tal que se pre-definieron unos niveles iniciales y un generador de niveles dinámicos para los niveles superiores. Para los niveles generados automáticamente, se incorpora lógica de aleatorización para crear puntos, obstáculos y casillas con agua según distribuciones de probabilidad predefinidas.
+Alteración del archivo init: no se ha modificado el esquema de representación de la grilla en el archivo `init.pl`. Lo que se modifica es la generación de niveles, tal que se pre-definieron unos niveles iniciales y un generador de niveles dinámicos para los niveles superiores. Para los niveles generados automáticamente, se incorpora lógica de aleatorización para crear puntos, obstáculos y casillas con agua según distribuciones de probabilidad predefinidas.
 
 ### 5.2) Eliminación de todo un color sin necesidad de un camino cerrado:
 
@@ -162,6 +171,8 @@ Con el fin de ser los más fieles posibles al juego original definimos 4 power u
 
 INSERTE CAP USO POWERAP
 
+![pw1](docs/images/codigo/pw1.jpeg)
+![pw2](docs/images/codigo/pw2.jpeg)
 
 #### 5.3.1) Borrador:
 
@@ -227,7 +238,7 @@ Con el fin de no poseer un módulo `game.tsx` con una cantidad excesiva de líne
 
 Componente encargado de la pantalla de selección de niveles. Permite al jugador visualizar su progreso y elegir los escenarios disponibles de manera sencilla e intuitiva. La interfaz muestra únicamente los niveles desbloqueados según el avance alcanzado y cuenta con un sistema de desplazamiento automático que centra la vista en el nivel actualmente seleccionado. Además, se diseñó una presentación visual inspirada en los mapas de progreso de juegos comerciales, utilizando un recorrido en zig-zag que conecta los distintos niveles y facilita la comprensión del avance dentro del juego. Todo el estilo de esta pantalla se encuentra encapsulado en módulos CSS independientes, favoreciendo la organización y el mantenimiento del código.
 
-#### 6.5.2) LevelSelector:
+#### 6.5.2) MainMenu:
 
 Componente que funciona como la pantalla principal y punto de entrada del juego. Desde aquí el usuario puede iniciar una nueva partida o acceder al selector de niveles, centralizando las acciones iniciales de navegación de la aplicación. Su diseño busca ofrecer una bienvenida clara y atractiva al jugador, organizando de forma ordenada los títulos, botones y elementos visuales principales. Además, cuenta con estilos modularizados que incorporan animaciones y efectos interactivos sobre los botones para mejorar la experiencia de usuario y dar mayor dinamismo a la interfaz.
 
@@ -241,7 +252,7 @@ Se implementó un sistema de audio mediante el hook personalizado `useAudio.ts`,
 
 Uno de los desafíos fue implementar la expansión del agua en cadena, donde la eliminación de un punto mojado debe propagarse a sus adyacentes, y estos a los suyos sucesivamente. Implementamos esto mediante Búsqueda en Profundidad (DFS) recursiva. Para evitar ciclos infinitos en grillas con muchos elementos de agua conectados; mantenemos una lista de visitados, garantizando que cada celda sea procesada una sola vez por jugada.
 
-### 7.2)Gestión de obstáculos y delimitación: 
+### 7.2) Gestión de obstáculos y delimitación: 
 
 Inicialmente, el agua se expandía erróneamente sobre celdas con obstáculos. Para corregirlo, implementamos una lógica de validación preventiva basada en una Búsqueda en Amplitud (BFS) para el control de fronteras. Antes de realizar cualquier expansión, el predicado `es_obstaculo/1` actúa como una barrera lógica, asegurando que el flujo de agua se detenga al detectar celdas delimitadoras ([-]).
 
@@ -250,9 +261,18 @@ Inicialmente, el agua se expandía erróneamente sobre celdas con obstáculos. P
 Tuvimos que experimentar con varios algoritmos para lograr una generación de bombas efectiva y completa.
 Fue complicado encontrar un balance que garantice la detección de bombas que no deje casos afuera ni meta casos de más. Al tener varios casos particulares (como la "falsa bomba" mencionada), tuvimos que poner más controles de los que pensamos. Si poníamos controles de más, por otra parte, había casos válidos que no nos consideraba, como por ejemplo un polígono cerrado con una "punta" fuera del cuadrado. 
 
-![FalsaBomba1](docs/images/casosDePrueba/Prolog/FalsaBomba1.png)
-![FalsaBomba2](docs/images/casosDePrueba/Prolog/FalsaBomba2.png)
-![FalsaBomba3](docs/images/casosDePrueba/Prolog/FalsaBomba3.png)
+## 8) Nuestra experiencia con la IA
+Los asistentes de IA sirvieron de apoyo a lo largo del desarrollo, aunque no sin sus contratiempos. 
+### Puntos destacados:
+- Nos ayudó a detectar código repetido que no veíamos, facilitando la reutilización y refactorización de predicados de Prolog, manteniendo el código modular y aplicando el principio DRY (Don't Repeat Yourself).
+- Nos facilitó entender cómo conectar la lógica del juego con los aspectos gráficos en React y así mapear datos del desde Prolog hacia la interfaz.
+- El completamiento y generación de código sencillo es de gran ayuda cuando se trabaja en un marco temporal y se sabe lo que se está haciendo. 
+- Poder pedir explicaciones de funciones y predicados era bastante útil cuando teníamos que tocar código en el que había trabajado otra integrante del grupo de forma asincrónica. 
+
+### Consideraciones
+- Así como la IA puede generar mucho código, también puede generar muchos errores. Cuando estábamos experimentando con los agentes tuvimos que calibrar la "confianza que les teníamos." A veces, sin querer, le dábamos permisos para modificar archivos o completar texto que en realidad no queríamos.
+- Tuvimos una ocasión donde al querer insertar un ícono, por copiar y pegar ciegamente, la IA decidió que el mejor curso de acción era hard-codear el ícono y dibujarlo de forma vectorial en lugar de simplemente importarlo.
+- Al final, decidimos que antes de aceptar una sugerencia de la IA o hacer un cambio grande, debíamos consultarlo entre nosotras para no cometer una imprudencia. Muchas veces pasaba, que algo que parecía coherente y correcto, después de un poco de análisis estaba atado con alambre. 
 
 ## 9) Conclusiones:
 
@@ -261,3 +281,22 @@ El desarrollo de este proyecto nos permitió comprender en profundidad cómo int
 La organización por capas implementada permitió desacoplar completamente la lógica de negocio de la interfaz gráfica. Gracias a ello, mecánicas complejas como la conexión de puntos, la gravedad, la expansión del agua, la generación y explosión de bombas o la validación de objetivos pudieron desarrollarse de manera independiente, pudiendo trabajar con la definición de los comportamientos de manera independiente de su representación visual. 
 
 En conjunto, el proyecto demuestra que es posible integrar de manera efectiva distintas tecnologías y niveles de abstracción dentro de una misma aplicación, logrando una solución flexible, extensible y fácil de mantener.
+
+
+
+
+
+
+![agua1](docs/images/codigo/agua1.jpeg)
+![agua2](docs/images/codigo/agua2.jpeg)
+![alt text](docs/images/codigo/auxiliarConnect.jpeg)
+![alt text](docs/images/codigo/bomba1.jpeg)
+![alt text](docs/images/codigo/bomba2.jpeg)
+![alt text](docs/images/codigo/bomba3.jpeg)
+![alt text](docs/images/codigo/bomba4.jpeg)
+![alt text](docs/images/codigo/bomba5.jpeg)
+![alt text](docs/images/codigo/gravedad1.jpeg)
+![alt text](docs/images/codigo/gravedad2.jpeg)
+![alt text](docs/images/codigo/gravedad3.jpeg)
+![alt text](docs/images/codigo/gravedad3.jpeg)
+
