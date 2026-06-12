@@ -18,8 +18,32 @@
  * - = obstáculo (celda no jugable)
  * ~ = agua
  */
-
 init([
+	% Fila 0 (índices 0-7)
+	[-], [r], [c], [p], [-], [-], [-], [-],
+	% Fila 1 (índices 8-15)
+	[c], [y], [g], [p], [r], [-], [-], [-],
+	% Fila 2 (índices 16-23)
+	[r], [r], [g], [y], [r], [g], [-], [-],
+	% Fila 3 (índices 24-31)
+	[y], [c], [-], [y], [c], [g], [g], [-],
+	% Fila 4 (índices 32-39)
+	[y, ~], [c, ~], [-], [g], [c, ~], [y, ~], [c, ~], [c],
+	% Fila 5 (índices 40-47)
+	[c, ~], [c, ~], [-], [g, ~], [c, ~], [y, ~], [c, ~], [-],
+	% Fila 6 (índices 48-55)
+	[c, ~], [y, ~], [g, ~], [g, ~], [c, ~], [c, ~], [-], [-],
+	% Fila 7 (índices 56-63)
+	[c, ~], [y, ~], [y, ~], [y, ~], [y, ~], [-], [-], [-],
+	% Fila 8 (índices 64-71)
+	[-], [y, ~], [y, ~], [y], [-], [-], [-], [-]
+], 8, [[r, 10], [g, 10], [p, 15], [~, 21]], 35).
+
+
+init_level(1, Grid, Cols, Goals, Moves) :- 
+    init(Grid, Cols, Goals, Moves).
+
+init_level(2, [
 	% Fila 0 (índices 0-7)
 	[-], [r], [c], [p], [-], [-], [-], [-],
 	% Fila 1 (índices 8-15)
@@ -41,10 +65,7 @@ init([
 ], 8, [[r, 10], [g, 10], [p, 15], [~, 21]], 35).
 
 
-init_level(1, Grid, Cols, Goals, Moves) :- 
-    init(Grid, Cols, Goals, Moves).
-
-init_level(2, [
+init_level(3, [
     [g], [g], [g], [g], [g], [g], [g], [g],
     [g], [y], [y], [y], [c], [g], [y,~], [g],
     [g], [y], [p], [y], [c], [g], [g], [g],
@@ -57,7 +78,7 @@ init_level(2, [
 ], 8, [[g,20],[r,10],[p,15],[~,5]], 30).
 
 
-init_level(3, [
+init_level(4, [
     [y], [p], [r], [g], [y], [p],
     [g], [y], [y], [r], [p], [g],
     [g], [g], [y], [p], [r], [y],
@@ -67,7 +88,7 @@ init_level(3, [
 ], 6, [[~, 10], [r, 12], [y, 12]], 18).
 
 
-init_level(4, [
+init_level(5, [
     [c], [c], [c], [y], [p], [r],
     [c], [r], [c], [g], [y], [p],
     [c], [c], [c], [r], [g], [y],
@@ -78,7 +99,7 @@ init_level(4, [
 
 
 init_level(N, Grid, Cols, Goals, Moves) :-
-    N > 4,
+    N > 5,
 
     Cols is min(10, 4 + N ),
     Rows is min(10, 5 + N ),

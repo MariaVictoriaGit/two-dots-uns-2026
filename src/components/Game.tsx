@@ -16,7 +16,10 @@ function Game() {
   const [levelId, setLevelId] = useState<number>(1);
   const [isPaused, setIsPaused] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
-  const [maxUnlockedLevel, setMaxUnlockedLevel] = useState<number>(1);
+  const [maxUnlockedLevel, setMaxUnlockedLevel] = useState<number>(() => {
+    const savedLevel = localStorage.getItem('maxLevel');
+    return savedLevel ? parseInt(savedLevel, 10) : 1;
+  });
   // State
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [pengine, setPengine] = useState<any>(null);
@@ -244,32 +247,33 @@ function Game() {
 
   const showGameOver = !isAnimating && (isVictory || isDefeat);
 
-  useEffect(() => {
+useEffect(() => {
     if (isVictory) {
       setMaxUnlockedLevel(prevMax => {
         const nextId = levelId + 1;
-        return nextId > prevMax ? nextId : prevMax;
+        const newMax = nextId > prevMax ? nextId : prevMax;
+        localStorage.setItem('maxLevel', newMax.toString());
+        return newMax;
       });
     }
   }, [isVictory, levelId]);
-
   // No muestres nada hasta que el servidor de Prolog esté listo (alternativamente, renderiza una interfaz de carga).
   if (!pengine) {
     return null;
   }
 
   if (currentScreen === 'mainMenu') {
-    return (
-      <MainMenu
-        onStart={() => {
-          setLevelId(1);
-          setGrid(null);
-          setCurrentScreen('playing');
-        }}
-        onSelectLevel={() => setCurrentScreen('levelSelector')}
-      />
-    );
-  }
+      return (
+        <MainMenu
+          onStart={() => {
+            setLevelId(maxUnlockedLevel);
+            setGrid(null);
+            setCurrentScreen('playing');
+          }}
+          onSelectLevel={() => setCurrentScreen('levelSelector')}
+        />
+      );
+    }
 
   if (currentScreen === 'levelSelector') {
     return (
