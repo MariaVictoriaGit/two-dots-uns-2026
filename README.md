@@ -1,101 +1,191 @@
-# Proyecto: <span style="color:#4aa3ff">Two Dots</span>
-*Lógica para Cs. de la Computación - 2026*
+# Two Dots — Web Game Implementation
 
-## El juego
-El *Two Dots* es un juego de puzzle cuyo objetivo principal es conectar puntos del mismo color para eliminarlos, haciendo que nuevos puntos caigan por gravedad y permitiendo cumplir objetivos específicos de cada nivel. Se encuentra disponible para Android y iOS: [www.twodots-game.com/game](https://www.twodots-game.com/game)
+A university group project developed for **Logic for Computer Science (2026)** at the **Universidad Nacional del Sur (UNS)**, Department of Computer Science and Engineering (DCIC), Argentina.
 
-![Captura del juego Two Dots](docs/images/2dots-game-screenshot.png)
+This project is a web-based implementation of *Two Dots*, a color-matching puzzle game in which players connect adjacent dots of the same color to clear the board, trigger gravity, and complete level-specific objectives.
 
-## Requerimientos
-### Funcionalidad
-Se debe implementar una aplicación web que permita jugar al *Two Dots*, con una interfaz del estilo de las apps para Android y iOS.
+The application is based on a starter implementation provided by the course instructors, combining **Prolog** for game logic and **React** for the user interface.
 
-Principales funcionalidades a ser contempladas:
+![Two Dots — Original Game Screenshot](docs/images/2dots-game-screenshot.png)
 
-- <span style="color:#fc7f40">📌 **Grilla de puntos de colores conectables.**</span> El usuario debe poder seleccionar y conectar puntos adyacentes del mismo color para formar una jugada válida. Al completar la jugada, esos puntos desaparecen.
+*Reference image of the original Two Dots game.*
 
-- <span style="color:#fc7f40">📌 **Caída por gravedad y generación de nuevos puntos.**</span> Luego de cada eliminación, los puntos por encima deben caer para ocupar espacios vacíos y deben generarse nuevos puntos en la parte superior para mantener la grilla completa.
+Original game: [Two Dots](https://www.twodots-game.com/game)
 
-- <span style="color:#fc7f40">📌 **Objetivos de la partida.**</span> Cada nivel debe definir objetivos de cantidad de puntos eliminados por color, y el estado del juego debe reflejar el progreso en esos objetivos. En niveles con agua (ver requerimiento más abajo) también se puede establer como objetivo una cierta cantidad de agua a generar.
+---
 
-- <span style="color:#fc7f40">📌 **Formas cerradas (cuadrado o lazo cerrado).**</span> Si una jugada forma una figura cerrada con puntos del mismo color, deben eliminarse todos los puntos de ese color presentes en la grilla.
+## About the Project
 
-- <span style="color:#fc7f40">📌 **Conversión a bombas al cerrar forma con contenido interno.**</span> Si la forma cerrada encierra uno o más elementos en su interior, esos elementos deben convertirse en bombas.
+The project was developed as part of the practical coursework for Logic for Computer Science. The assignment consisted of extending a starter repository built with React and Prolog to implement the main mechanics of Two Dots.
 
-- <span style="color:#fc7f40">📌 **Comportamiento de bombas.**</span> Las bombas deben caer por gravedad como cualquier otro elemento y, al explotar, eliminar un área de 3×3 centrada en su posición.
+The original course specification established the functional requirements, the initial project structure, and the division of responsibilities between the frontend and backend.
 
-- <span style="color:#fc7f40">📌 **Espacios / obstáculos.**</span> Deben contemplarse casilleros especiales de tipo obstáculo o espacio no utilizable, éstos no pueden alojar puntos,
-y los puntos los atraviesan al caer por gravedad para ocupar el siguiente casillero disponible debajo de ellos, si es que existe.
+Our team worked collaboratively on extending and adapting this foundation, focusing on the implementation of the assigned game mechanics and the integration between the two technologies.
 
-- <span style="color:#fc7f40">📌 **Mecánica de agua.**</span> El agua se expande al eliminar puntos junto a ella. Además, un nivel puede tener como objetivo extender el agua una cierta cantidad de casilleros.
+The repository represents the team's actual development work. Not every feature or mechanic from the original game, or every requirement described in the assignment, should be interpreted as fully implemented.
 
-- <span style="color:#fc7f40">📌**Finalización del juego**</span> El juego debe finalizar cuando se cumplan los objetivos del nivel, o cuando no existan más jugadas posibles. En ambos casos, debe mostrarse un mensaje indicando el resultado (victoria o derrota).
+## Technologies
 
-**Importante**: para cada uno de los requerimientos anteriores se debe imitar fielmente el comportamiento de la aplicación. Ante cualquier duda acerca de algún comportamiento específico, consultar con el docente asignado.
+- **Prolog (SWI-Prolog):** Declarative programming and game logic.
+- **React:** User interface and interactive components.
+- **JavaScript / TypeScript:** Frontend functionality and application logic.
+- **Pengines:** Communication between the React application and the Prolog backend.
+- **CSS:** Interface styling and visual presentation.
+- **Git & GitHub:** Version control and collaborative development.
 
-### Implementación
-Debe extenderse la implementación molde (React + Prolog) en este repositorio para cumplir con los requerimientos de funcionalidad mencionados anteriormente.
+## Game Concept and Functional Requirements
 
-El archivo [`init.pl`](./pengines_server/apps/proylcc/init.pl) (módulo Prolog) permite especificar la configuración de la partida o nivel, esto es, la grilla inicial y los objetivos, que será mostrada por la interfaz. Es **importante** que no se altere este esquema, y que se **conserve la representación** de la grilla propuesta en el código molde, dado que para la corrección del proyecto vamos a testear la implementación reemplazando la grilla actual en [`init.pl`](./pengines_server/apps/proylcc/init.pl) con diferentes grillas (casos de test).
+The assignment was based on reproducing the main mechanics of Two Dots in a web application.
 
-El archivo [`proylcc.pl`](./pengines_server/apps/proylcc/proylcc.pl) contiene la implementación molde del predicado `connect/4` consultado desde la UI en React. Esto determina claramente qué parte de la resolución del juego queremos que se realice en Prolog, y qué parte en JS / React. En caso de necesitar modificar la interfaz de este predicado, o exportar predicados adicionales, consultarlo con el docente asignado.
+The original specification included the following requirements:
 
-### Documentación
-Se deberá realizar un informe que explique claramente la **implementación en Prolog** realizada, así como los **aspectos destacados de la implementación en React**.
-Además, deberá incluirse una sección con **casos de test** significativos (capturas de pantalla).
+- **Color Matching:** Select and connect adjacent dots of the same color to make valid moves.
+- **Gravity and Tile Generation:** After removing dots, the remaining elements fall to fill available spaces, and new dots are generated at the top of the board.
+- **Level Objectives:** Track the number of dots removed for each required color and display the player's progress.
+- **Closed Loops:** Detect closed paths formed by dots of the same color and remove all dots of that color from the board.
+- **Bomb Creation:** Convert elements enclosed by a closed loop into bombs.
+- **Bomb Explosions:** Exploding bombs remove elements within a 3×3 area centered on their position.
+- **Obstacles and Empty Spaces:** Handle special cells that cannot contain dots and affect gravity.
+- **Water Mechanics:** Allow water to spread to neighboring cells when adjacent dots are removed, potentially becoming a level objective.
+- **Game Completion:** Detect victory when the level objectives are achieved and defeat when no valid moves remain.
 
-El informe debe ser:
-- <span style="color:#0083bb">✅ **Claro:**</span> información bien estructurada y presentada.
-- <span style="color:#0083bb">✅ **Completo:**</span> explicando cómo resolvieron cada requerimiento funcional (a nivel de estrategia, no a nivel de código), funcionalidades extra implementadas (si es que alguna), aspectos positivos de la resolución, desafíos que encontraron y cómo los enfrentaron, casos de test (capturas de pantalla).
-- <span style="color:#0083bb">✅ **Sintético y relevante:**</span> no repetir información que está en el enunciado, no documentar funcionalidad de muy bajo nivel o auxiliar, que no contribuya al entendimiento de la estrategia principal.
+These items describe the functional scope established by the course assignment, rather than a claim that every mechanic was completed in the submitted implementation.
 
-**Consejo:** darle algunas pasadas (lectura y modificaciones) hasta conseguir todo esto.
+## Architecture
 
-El informe debe escribirse en [`INFORME.md`](/docs/INFORME.md).
+The application follows a client-server architecture, separating the game logic from its visual representation.
 
-### Comisiones y Entrega
-1. Las comisiones deben estar conformadas por hasta **3 integrantes**, y ser previamente **registradas** en la página de la materia (Google sheet) y en la asignación de GH Classroom, lo que creará un repositorio GH privado accesible para los integrantes de la comisión y docentes (seguir indicaciones en la página de la materia).
-2. A cada comisión se le **asignará un docente** de la práctica, quien hará el seguimiento y corregirá el proyecto de la comisión.
-3. La **entrega** del proyecto se realiza mediante un **commit + push** de la versión final en el repositorio GH de la comisión.
-4. La **fecha límite de entrega** del proyecto se encuentra publicada en la página de la materia. Los proyectos entregados fuera de término recibirán una penalización en su calificación, la cual será proporcional al retraso incurrido.
+### Prolog — Game Logic
 
-<hr style="border-top:5px solid #0083bb; border-bottom: 0; margin: 40px 0;"/>
+The backend is implemented in SWI-Prolog and is responsible for the declarative side of the game.
 
-## Implementación molde en React + Prolog
+The starter project establishes the main game interface through the `connect/4` predicate, which is called by the React frontend.
 
-Implementación molde a usar como punto de partida para la resolución del proyecto de la materia, usando React del lado del cliente para la UI, y Prolog del lado del servidor para la lógica del juego.
+The original project also defines the initial board configuration and level objectives in `init.pl`.
 
-### Setup y ejecución del servidor Pengines
-- [Descargar](https://www.swi-prolog.org/Download.html) e instalar el SWI-Prolog.
+Main files:
 
-- Levantar el servidor ejecutando:
+- `pengines_server/apps/proylcc/init.pl` — Initial game configuration, board representation, and objectives.
+- `pengines_server/apps/proylcc/proylcc.pl` — Prolog game logic and the `connect/4` predicate.
 
-  `npm run pengines`
+### React — User Interface
 
-  La primera vez que se ejecute el run.pl se pedirá definir un username y un password para acceder a la consola web admin del servidor; elegir cualquiera (por ejemplo, username: 'lcc' y password: 'lccdcic'), pero no dejar vacíos.
+The frontend is responsible for the visual and interactive aspects of the application, including:
 
-- El servidor escuchará en http://localhost:3030
+- Rendering the game board and its elements.
+- Handling player selections and interactions.
+- Displaying game objectives and progress.
+- Presenting game states and visual feedback.
 
-- Consola con configuraciones del servidor: http://localhost:3030/admin/server. Idealmente no necesitará acceder a ella.
+### Frontend–Backend Communication
 
-- La carpeta `pengines_server/apps/proylcc` contiene el código Prolog del proyecto. Cada vez que se modifica este código es necesario bajar y volver a levantar el servidor para que se reflejen los cambios.
+The application uses **Pengines** to connect React with the SWI-Prolog server, allowing the frontend to request game operations and receive their results.
 
-### Setup y ejecución de la aplicación React
+This integration combines declarative problem-solving in Prolog with an interactive web interface.
 
-- Descargar una versión reciente de [Node.js](https://nodejs.org/en/).
+## Running the Project Locally
 
-- Ejecutar
+### Requirements
 
-  `npm install`
+- [Node.js](https://nodejs.org/en/)
+- [SWI-Prolog](https://www.swi-prolog.org/Download.html)
+- npm
 
-  en el directorio del proyecto (`tic-tac-toe`) para instalar las dependencias (librerías) localmente, en la carpeta `node_modules`.
+### 1. Clone the Repository
 
-- Ejecutar
+```bash
+git clone https://github.com/MariaVictoriaGit/two-dots-uns-2026.git
+cd two-dots-uns-2026
+```
 
-  `npm run dev`
+### 2. Install Dependencies
 
-  en el directorio del proyecto para correr la app en modo desarrollo.
+```bash
+npm install
+```
 
-- Abrir [http://localhost:3000](http://localhost:3000) para ver la aplicación en el browser.
+### 3. Start the Prolog Server
 
-- La página se refresca automáticamente cuando cambia el código.
+Open a terminal in the project directory and run:
+
+```bash
+npm run pengines
+```
+
+The first execution may request a username and password for the SWI-Prolog web administration console.
+
+The Prolog server will be available at:
+
+`http://localhost:3030`
+
+**Note:** Whenever Prolog source files are modified, restart the Pengines server to apply the changes.
+
+### 4. Start the React Application
+
+Open a second terminal in the project directory and run:
+
+```bash
+npm run dev
+```
+
+The application will be available at:
+
+`http://localhost:3000`
+
+The development server automatically refreshes the application when frontend source files change.
+
+**Both servers must be running simultaneously for the application to work correctly.**
+
+## Project Structure
+
+```text
+two-dots-uns-2026/
+│
+├── README.md                 # English — presentation and documentation
+├── README-original.md        # Original course assignment (Spanish)
+│
+├── docs/
+│   ├── images/
+│   │   └── 2dots-game-screenshot.png
+│   └── INFORME.md            # Original team project report
+│
+├── pengines_server/
+├── src/
+└── package.json
+```
+
+*The structure above is illustrative. Additional files and directories are included in the repository.*
+
+## Contributors
+
+Developed collaboratively by:
+
+- **[Laura Arboleas](https://github.com/laura-arboleas)**
+- **[María Victoria](https://github.com/MariaVictoriaGit)**
+- **[Ciberocio](https://github.com/ciberocio)**
+
+This was a collaborative academic project, with contributions from all three team members throughout its development.
+
+## Academic Context and Credits
+
+**Institution:** Universidad Nacional del Sur (UNS), Argentina  
+**Department:** Department of Computer Science and Engineering (DCIC)  
+**Course:** Logic for Computer Science (Lógica para Ciencias de la Computación)  
+**Academic Year:** 2026  
+**Project:** Two Dots — React + Prolog
+
+The project was based on the starter implementation and functional specification provided by the course instructors.
+
+**Original course repository:**
+
+[ LCC-DCIC-UNS-2026 / proyecto-two-dots-com-6 ](https://github.com/LCC-DCIC-UNS-2026/proyecto-two-dots-com-6)
+
+The original repository provided the initial React and Prolog implementation, development environment, and assignment requirements.
+
+This repository preserves the development history of the team's work and acknowledges the original academic context and all collaborators.
+
+---
+
+**Project type:** University coursework · Collaborative software project  
+**Year:** 2026  
+**Main technologies:** Prolog · React · JavaScript · Pengines
